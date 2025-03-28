@@ -1,28 +1,12 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { bitable, IAttachmentField } from '@lark-base-open/js-sdk';
-import { Alert, AlertProps } from 'antd';
+import { bitable } from '@lark-base-open/js-sdk'
+import { UnityTextPreview } from './components/UnityTextPreview'
+import './styles.css'
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+// 初始化插件
+ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <LoadApp/>
+    <UnityTextPreview />
   </React.StrictMode>
 )
-
-function LoadApp() {
-  const [info, setInfo] = useState('get table name, please waiting ....');
-  const [alertType, setAlertType] = useState<AlertProps['type']>('info');
-  useEffect(() => {
-    const fn = async () => {
-      const table = await bitable.base.getActiveTable();
-      const tableName = await table.getName();
-      setInfo(`The table Name is ${tableName}`);
-      setAlertType('success');
-    };
-    fn();
-  }, []);
-
-  return <div>
-    <Alert message={info} type={alertType} />
-  </div>
-}
