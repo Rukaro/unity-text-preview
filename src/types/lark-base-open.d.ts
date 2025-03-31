@@ -13,20 +13,14 @@ declare module '@lark-base-open/js-sdk' {
       getRecordById: (recordId: string) => Promise<Record>;
     }
   
-    export interface Bitable {
-      getSelection: () => Promise<{
-        tableId: string;
-        recordId: string;
-        fieldId: string;
-        cellId: string;
-      }>;
+    export interface Base {
+      getActiveTable: () => Promise<Table>;
       onSelectionChange: (callback: (event: { data: { recordId: string; fieldId: string } }) => void) => void;
-      getTable: (tableId: string) => Promise<Table>;
     }
   
-    export interface LarkBase {
-      bitable: Bitable;
+    export interface Bitable {
+      base: Base;
     }
   
-    export function init(): Promise<LarkBase>;
-  }
+    export const bitable: Bitable;
+}

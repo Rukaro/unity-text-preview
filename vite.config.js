@@ -9,5 +9,17 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 3000,
     open: true,
+  },
+  build: {
+    target: 'es2015',
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    minify: 'terser',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
   }
 })

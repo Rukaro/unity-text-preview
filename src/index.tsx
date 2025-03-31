@@ -1,28 +1,21 @@
 import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
-import { init, LarkBase } from '@lark-base-open/js-sdk'
+import { bitable } from '@lark-base-open/js-sdk'
 import { UnityTextPreview } from './components/UnityTextPreview'
 import './styles.css'
 
 const App: React.FC = () => {
   const [selectedText, setSelectedText] = useState('')
-  const [bitable, setBitable] = useState<LarkBase | null>(null)
 
   useEffect(() => {
     const fn = async () => {
       try {
-        const bitableInstance = await init()
-        setBitable(bitableInstance)
         console.log('Getting active table...')
-        const selection = await bitableInstance.bitable.getSelection()
-        console.log('Got selection:', selection)
-
-        // 获取当前表格
-        const table = await bitableInstance.bitable.getTable(selection.tableId)
-        console.log('Got table:', table)
+        const table = await bitable.base.getActiveTable()
+        console.log('Got active table:', table)
 
         // 监听选中单元格变化
-        bitableInstance.bitable.onSelectionChange(async (event: { data: { recordId: string; fieldId: string } }) => {
+        bitable.base.onSelectionChange(async (event: { data: { recordId: string; fieldId: string } }) => {
           console.log('Selection changed:', event)
           const { data } = event
           const { recordId, fieldId } = data
