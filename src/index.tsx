@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
 import { bitable } from '@lark-base-open/js-sdk'
-import type { ITextField } from '@lark-base-open/js-sdk'
 import { UnityTextPreview } from './components/UnityTextPreview'
 import './styles.css'
 
@@ -16,14 +15,14 @@ const App: React.FC = () => {
         console.log('Got active table:', table)
 
         // 监听选中单元格变化
-        bitable.base.onSelectionChange(async (event) => {
+        bitable.base.onSelectionChange(async (event: { data: { recordId: string; fieldId: string } }) => {
           console.log('Selection changed:', event)
           const { data } = event
           const { recordId, fieldId } = data
           if (recordId && fieldId) {
             try {
               // 获取字段
-              const field = await table.getField<ITextField>(fieldId)
+              const field = await table.getField(fieldId)
               console.log('Got field:', field)
               
               // 获取记录
