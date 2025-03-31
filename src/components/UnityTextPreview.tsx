@@ -5,7 +5,7 @@ interface UnityTextPreviewProps {
   text: string
 }
 
-const UnityTextPreview: React.FC<UnityTextPreviewProps> = ({ text }) => {
+export const UnityTextPreview: React.FC<UnityTextPreviewProps> = ({ text }) => {
   const [defaultColor, setDefaultColor] = useState('#D2D2D2')
 
   const parseUnityRichText = (text: string) => {
@@ -47,5 +47,3 @@ const UnityTextPreview: React.FC<UnityTextPreviewProps> = ({ text }) => {
     </div>
   )
 }
-
-export default UnityTextPreview
