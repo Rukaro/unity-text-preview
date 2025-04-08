@@ -8,8 +8,17 @@ interface UnityTextPreviewProps {
 export const UnityTextPreview: React.FC<UnityTextPreviewProps> = ({ text }) => {
   const [defaultColor, setDefaultColor] = useState('#D2D2D2')
 
+  const decodeUnicode = (text: string) => {
+    return text.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => 
+      String.fromCharCode(parseInt(hex, 16))
+    )
+  }
+
   const parseUnityRichText = (text: string) => {
-    return text
+    // 先解码 Unicode 转义序列
+    const decodedText = decodeUnicode(text)
+    
+    return decodedText
       .replace(/<color=#([A-Fa-f0-9]{6})>/g, (_, color) => `<span style="color: #${color}">`)
       .replace(/<\/color>/g, '</span>')
       .replace(/<b>/g, '<strong>')
