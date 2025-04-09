@@ -30,7 +30,11 @@ const fontFaceStyle = document.createElement('style');
 fontFaceStyle.textContent = `
   @font-face {
     font-family: 'Alibaba PuHuiTi';
-    src: url('/AlibabaPuHuiTi-3-105-Heavy/AlibabaPuHuiTi-3-105-Heavy.ttf') format('truetype');
+    src: url('/AlibabaPuHuiTi-3-105-Heavy/AlibabaPuHuiTi-3-105-Heavy.woff2') format('woff2'),
+         url('/AlibabaPuHuiTi-3-105-Heavy/AlibabaPuHuiTi-3-105-Heavy.woff') format('woff'),
+         url('/AlibabaPuHuiTi-3-105-Heavy/AlibabaPuHuiTi-3-105-Heavy.ttf') format('truetype'),
+         url('/AlibabaPuHuiTi-3-105-Heavy/AlibabaPuHuiTi-3-105-Heavy.otf') format('opentype'),
+         url('/AlibabaPuHuiTi-3-105-Heavy/AlibabaPuHuiTi-3-105-Heavy.eot') format('embedded-opentype');
     font-weight: 900;
     font-style: normal;
     font-display: swap;
