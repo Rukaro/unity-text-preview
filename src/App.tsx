@@ -117,7 +117,7 @@ function App() {
   // Auto-connect to Feishu Base when the component mounts
   useEffect(() => {
     connectToBase();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Function to set up cell selection listener
   const setupCellSelectionListener = async (): Promise<() => void> => {
@@ -251,12 +251,10 @@ function App() {
       const selection = await bitable.base.getSelection();
       
       if (selection && selection.recordId && selection.fieldId) {
-        // Update the cell value
-        const record = await table.getRecordById(selection.recordId);
+        // Get the field
         const field = await table.getFieldById(selection.fieldId);
         
-        // Set the cell value using the correct API
-        // According to the documentation, we need to use the field's setValue method
+        // Update the cell value
         await field.setValue(selection.recordId, text);
         
         // Show success message
