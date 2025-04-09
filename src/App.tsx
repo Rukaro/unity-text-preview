@@ -22,7 +22,6 @@ import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import SuperscriptIcon from '@mui/icons-material/Superscript';
 import SubscriptIcon from '@mui/icons-material/Subscript';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import DeleteIcon from '@mui/icons-material/Delete';
 import { styled } from '@mui/material/styles';
 import { bitable } from '@lark-base-open/js-sdk';
 
@@ -322,14 +321,6 @@ function App() {
     setShowCopyAlert(true);
   };
 
-  // Function to clear text
-  const handleClear = () => {
-    setText('');
-    if (textFieldRef.current) {
-      textFieldRef.current.focus();
-    }
-  };
-
   // Function to convert plain text with markup to Unity rich text
   const convertToUnityRichText = (plainText: string): string => {
     // Create a temporary div to parse the markup
@@ -574,14 +565,6 @@ function App() {
                 onClick={handleCopy}
               >
                 Copy
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<DeleteIcon />}
-                onClick={handleClear}
-              >
-                Clear
               </Button>
               <Button
                 variant="contained"
