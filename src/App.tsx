@@ -14,7 +14,6 @@ import {
   Snackbar,
   Alert,
   TextField,
-  Divider,
 } from '@mui/material';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined';
@@ -23,7 +22,6 @@ import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import SuperscriptIcon from '@mui/icons-material/Superscript';
 import SubscriptIcon from '@mui/icons-material/Subscript';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import FormatClearIcon from '@mui/icons-material/FormatClear';
 import DeleteIcon from '@mui/icons-material/Delete';
 import { styled } from '@mui/material/styles';
 import { bitable } from '@lark-base-open/js-sdk';
@@ -91,17 +89,13 @@ function App() {
   const [text, setText] = useState('');
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState('未连接');
   const [previewBgColor, setPreviewBgColor] = useState('#0E1F34');
   const defaultBgColor = '#0E1F34';
 
   // Function to connect to Feishu Base
   const connectToBase = async () => {
     try {
-      // Initialize the Base SDK
-      // Note: The SDK doesn't have an init method, it's automatically initialized
       setIsConnected(true);
-      setConnectionStatus('已连接');
       
       // Set up event listener for cell selection
       setupCellSelectionListener();
@@ -110,7 +104,6 @@ function App() {
       setShowCopyAlert(true);
     } catch (error) {
       console.error('Failed to connect to Base:', error);
-      setConnectionStatus('连接失败');
     }
   };
 
