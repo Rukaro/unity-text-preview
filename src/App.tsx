@@ -52,7 +52,7 @@ const PreviewContainer = styled(Paper)(({ theme }) => ({
   marginTop: theme.spacing(2),
   backgroundColor: '#0E1F34',
   color: '#D2D2D2',
-  fontFamily: 'Alibaba PuHuiTi, sans-serif',
+  fontFamily: '"Alibaba PuHuiTi", sans-serif',
   whiteSpace: 'pre-wrap',
   wordBreak: 'break-all',
 }));
@@ -111,6 +111,7 @@ function App() {
   const textFieldRef = useRef<HTMLTextAreaElement>(null);
   const [previewBgColor, setPreviewBgColor] = useState('#0E1F34');
   const defaultBgColor = '#0E1F34';
+  const [hasSelection, setHasSelection] = useState(false);
 
   // Function to connect to Feishu Base
   const connectToBase = async () => {
@@ -139,6 +140,7 @@ function App() {
       const selection = await bitable.base.getSelection();
       
       if (selection && selection.recordId && selection.fieldId) {
+        setHasSelection(true);
         // Get the active table first
         const table = await bitable.base.getActiveTable();
         // Get the selected cell value
@@ -181,10 +183,13 @@ function App() {
           
           return textValue;
         }
+      } else {
+        setHasSelection(false);
       }
       return '';
     } catch (error) {
       console.error('Failed to get cell value:', error);
+      setHasSelection(false);
       return '';
     }
   };
@@ -272,8 +277,11 @@ function App() {
         // Get the field
         const field = await table.getFieldById(selection.fieldId);
         
+        // Replace newlines with <br> before updating
+        const textWithBr = text.replace(/\n/g, '<br>');
+        
         // Update the cell value
-        await field.setValue(selection.recordId, text);
+        await field.setValue(selection.recordId, textWithBr);
         
         // Show success message
         setShowCopyAlert(true);
@@ -591,7 +599,8 @@ function App() {
               value={text}
               onChange={handleTextChange}
               variant="outlined"
-              placeholder="在此输入文本..."
+              placeholder={hasSelection ? "在此输入文本..." : "选择一个单元格来显示内容"}
+              disabled={!hasSelection}
             />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Button
