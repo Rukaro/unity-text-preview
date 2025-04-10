@@ -192,9 +192,6 @@ function App() {
   // Function to set up cell selection listener
   const setupCellSelectionListener = useCallback(async (): Promise<() => void> => {
     try {
-      // Get the active table
-      const table = await bitable.base.getActiveTable();
-      
       // Set up a button to get the current selection (for manual triggering)
       const getSelectionButton = document.createElement('button');
       getSelectionButton.textContent = '获取选中单元格';
