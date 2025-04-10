@@ -551,7 +551,11 @@ function App() {
                       border: '1px solid #ccc',
                     }}
                   >
-                    {key.charAt(0).toUpperCase() + key.slice(1)}
+                    {key === 'normal' ? '普通' : 
+                     key === 'uncommon' ? '优秀' : 
+                     key === 'rare' ? '稀有' : 
+                     key === 'epic' ? '史诗' : 
+                     key === 'legendary' ? '传说' : key}
                   </Button>
                 ))}
               </Box>
@@ -572,7 +576,11 @@ function App() {
                       border: '1px solid #ccc',
                     }}
                   >
-                    {key.charAt(0).toUpperCase() + key.slice(1)}
+                    {key === 'frost' ? '冰霜' : 
+                     key === 'fire' ? '火焰' : 
+                     key === 'nature' ? '自然' : 
+                     key === 'holy' ? '神圣' : 
+                     key === 'shadow' ? '暗影' : key}
                   </Button>
                 ))}
               </Box>
@@ -593,7 +601,9 @@ function App() {
                       border: '1px solid #ccc',
                     }}
                   >
-                    {key.charAt(0).toUpperCase() + key.slice(1)}
+                    {key === 'neutral' ? '中性' : 
+                     key === 'positive' ? '正面' : 
+                     key === 'negative' ? '负面' : key}
                   </Button>
                 ))}
               </Box>
