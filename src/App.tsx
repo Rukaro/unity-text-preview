@@ -21,6 +21,7 @@ import FormatStrikethroughIcon from '@mui/icons-material/FormatStrikethrough';
 import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import SuperscriptIcon from '@mui/icons-material/Superscript';
 import SubscriptIcon from '@mui/icons-material/Subscript';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { styled } from '@mui/material/styles';
 import { bitable } from '@lark-base-open/js-sdk';
@@ -82,9 +83,9 @@ const colorCategories = {
 
 // Special symbols
 const specialSymbols = [
-  { name: 'Soft Hyphen', value: '\\u00AD', description: 'Soft hyphen (invisible hyphen)' },
-  { name: 'Non-breaking Space', value: '\\u00A0', description: 'Non-breaking space' },
-  { name: 'Space (0.25em)', value: '<space=0.25em>', description: 'Space with 0.25em width' },
+  { name: '软连接符', value: '\\u00AD', description: '软连接符（不可见连字符）' },
+  { name: '不换行空格', value: '\\u00A0', description: '不换行空格' },
+  { name: '防止修剪间隙', value: '<space=0.25em>', description: '宽度为0.25em的空格' },
 ];
 
 function App() {
@@ -361,6 +362,63 @@ function App() {
     setPreviewBgColor(defaultBgColor);
   };
 
+  // Function to reset text from selected cell
+  const handleReset = async () => {
+    try {
+      // Get the active table
+      const table = await bitable.base.getActiveTable();
+      
+      // Get the current selection
+      const selection = await bitable.base.getSelection();
+      
+      if (selection && selection.recordId && selection.fieldId) {
+        // Get the selected cell value
+        const field = await table.getFieldById(selection.fieldId);
+        
+        // Get the cell value using the correct API
+        const cellValue = await field.getValue(selection.recordId);
+        
+        // Update the text field with the cell value
+        if (cellValue !== null && cellValue !== undefined) {
+          // Handle different types of cell values
+          let textValue = '';
+          
+          if (typeof cellValue === 'string') {
+            // If it's already a string, use it directly
+            textValue = cellValue;
+          } else if (typeof cellValue === 'object') {
+            // If it's an object, try to extract text content
+            if (cellValue.text !== undefined) {
+              // Some field types store text in a 'text' property
+              textValue = cellValue.text;
+            } else if (cellValue.value !== undefined) {
+              // Some field types store text in a 'value' property
+              textValue = cellValue.value;
+            } else if (Array.isArray(cellValue)) {
+              // If it's an array, join the elements
+              textValue = cellValue.map(item => {
+                if (typeof item === 'string') return item;
+                if (typeof item === 'object' && item.text !== undefined) return item.text;
+                return JSON.stringify(item);
+              }).join(', ');
+            } else {
+              // If we can't extract text, stringify the object
+              textValue = JSON.stringify(cellValue, null, 2);
+            }
+          } else {
+            // For other types, convert to string
+            textValue = String(cellValue);
+          }
+          
+          setText(textValue);
+          setShowCopyAlert(true);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to reset text:', error);
+    }
+  };
+
   return (
     <Container maxWidth="md">
       <Box sx={{ my: 4 }}>
@@ -411,10 +469,10 @@ function App() {
 
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
               <FormControl size="small" sx={{ minWidth: 120 }}>
-                <InputLabel>Font Size</InputLabel>
+                <InputLabel>字号</InputLabel>
                 <Select
                   value={1}
-                  label="Font Size"
+                  label="字号"
                   onChange={(e) => {
                     const size = Number(e.target.value);
                     insertMarkup(`<size=${size}>`, '</size>');
@@ -433,7 +491,7 @@ function App() {
                 variant="outlined"
                 size="small"
                 onClick={() => {
-                  const color = '#FF0000'; // Default color, can be changed
+                  const color = '#FF0000'; // 默认颜色，可以更改
                   insertMarkup(`<color=${color}>`, '</color>');
                 }}
                 sx={{ 
@@ -442,7 +500,7 @@ function App() {
                   border: '1px solid #ccc',
                 }}
               >
-                Color
+                字体颜色
               </Button>
               
               <input
@@ -560,15 +618,16 @@ function App() {
               value={text}
               onChange={handleTextChange}
               variant="outlined"
-              placeholder="Enter text here..."
+              placeholder="在此输入文本..."
             />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Button
                 variant="contained"
-                startIcon={<ContentCopyIcon />}
-                onClick={handleCopy}
+                startIcon={<RestartAltIcon />}
+                onClick={handleReset}
+                disabled={!isConnected}
               >
-                Copy
+                重置
               </Button>
               <Button
                 variant="contained"
@@ -585,7 +644,7 @@ function App() {
         <PreviewContainer>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
             <Typography variant="h6" sx={{ color: '#D2D2D2' }}>
-              Unity Rich Text Preview:
+              预览:
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography variant="body2" sx={{ color: '#D2D2D2' }}>
