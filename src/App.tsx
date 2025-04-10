@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   Container, 
   Paper, 
@@ -105,10 +105,10 @@ const getContrastColor = (hexcolor: string): string => {
 };
 
 function App() {
-  const textFieldRef = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState('');
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const textFieldRef = useRef<HTMLTextAreaElement>(null);
   const [previewBgColor, setPreviewBgColor] = useState('#0E1F34');
   const defaultBgColor = '#0E1F34';
 
@@ -135,13 +135,12 @@ function App() {
   // Function to get cell value from selection
   const getCellValueFromSelection = async () => {
     try {
-      // Get the active table
-      const table = await bitable.base.getActiveTable();
-      
       // Get the current selection
       const selection = await bitable.base.getSelection();
       
       if (selection && selection.recordId && selection.fieldId) {
+        // Get the active table first
+        const table = await bitable.base.getActiveTable();
         // Get the selected cell value
         const field = await table.getFieldById(selection.fieldId);
         
@@ -191,7 +190,7 @@ function App() {
   };
 
   // Function to set up cell selection listener
-  const setupCellSelectionListener = async (): Promise<() => void> => {
+  const setupCellSelectionListener = useCallback(async (): Promise<() => void> => {
     try {
       // Get the active table
       const table = await bitable.base.getActiveTable();
@@ -242,7 +241,7 @@ function App() {
       // Return an empty cleanup function in case of error
       return () => {};
     }
-  };
+  }, []);
 
   // Set up the cell selection listener when the component mounts
   useEffect(() => {
@@ -261,7 +260,7 @@ function App() {
         cleanup();
       }
     };
-  }, [isConnected]);
+  }, [isConnected, setupCellSelectionListener]);
 
   // Function to update the selected cell with the current text
   const updateSelectedCell = async () => {
