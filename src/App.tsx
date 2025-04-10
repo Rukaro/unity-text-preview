@@ -115,6 +115,7 @@ function App() {
   const defaultBgColor = '#0E1F34';
   const [hasSelection, setHasSelection] = useState(false);
   const [enableSegmentation, setEnableSegmentation] = useState(false);
+  const [isCellEditable, setIsCellEditable] = useState(true);
 
   // Function to connect to Feishu Base
   const connectToBase = async () => {
@@ -148,6 +149,11 @@ function App() {
         const table = await bitable.base.getActiveTable();
         // Get the selected cell value
         const field = await table.getFieldById(selection.fieldId);
+        
+        // Check if the field is editable
+        const fieldType = field.type;
+        const isEditable = !['formula', 'lookup', 'rollup'].includes(fieldType);
+        setIsCellEditable(isEditable);
         
         // Get the cell value using the correct API
         const cellValue = await field.getValue(selection.recordId);
@@ -285,6 +291,37 @@ function App() {
         
         // Update the cell value
         await field.setValue(selection.recordId, textWithBr);
+        
+        // Get the updated cell value to ensure sync
+        const updatedValue = await field.getValue(selection.recordId);
+        
+        // Update the text field with the new value
+        if (updatedValue !== null && updatedValue !== undefined) {
+          let newText = '';
+          if (typeof updatedValue === 'string') {
+            newText = updatedValue;
+          } else if (typeof updatedValue === 'object') {
+            if (updatedValue.text !== undefined) {
+              newText = updatedValue.text;
+            } else if (updatedValue.value !== undefined) {
+              newText = updatedValue.value;
+            } else if (Array.isArray(updatedValue)) {
+              newText = updatedValue.map(item => {
+                if (typeof item === 'string') return item;
+                if (typeof item === 'object' && item.text !== undefined) return item.text;
+                return JSON.stringify(item);
+              }).join(', ');
+            } else {
+              newText = JSON.stringify(updatedValue, null, 2);
+            }
+          } else {
+            newText = String(updatedValue);
+          }
+          
+          // Replace <br> with newlines for display
+          newText = newText.replace(/<br>/g, '\n');
+          setText(newText);
+        }
         
         // Show success message
         setShowCopyAlert(true);
@@ -641,7 +678,7 @@ function App() {
                 variant="contained"
                 color="primary"
                 onClick={updateSelectedCell}
-                disabled={!isConnected}
+                disabled={!isConnected || !isCellEditable}
               >
                 更新单元格
               </Button>
