@@ -87,6 +87,23 @@ const specialSymbols = [
   { name: '防止修剪间隙', value: '<space=0.25em>', description: '宽度为0.25em的空格' },
 ];
 
+// Utility function to get contrast color
+const getContrastColor = (hexcolor: string): string => {
+  // Remove the # if present
+  const color = hexcolor.replace('#', '');
+  
+  // Convert to RGB
+  const r = parseInt(color.substr(0, 2), 16);
+  const g = parseInt(color.substr(2, 2), 16);
+  const b = parseInt(color.substr(4, 2), 16);
+  
+  // Calculate luminance
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  
+  // Return black or white based on luminance
+  return luminance > 0.5 ? '#000000' : '#FFFFFF';
+};
+
 function App() {
   const textFieldRef = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState('');
@@ -115,64 +132,69 @@ function App() {
     connectToBase();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Function to get cell value from selection
+  const getCellValueFromSelection = async () => {
+    try {
+      // Get the active table
+      const table = await bitable.base.getActiveTable();
+      
+      // Get the current selection
+      const selection = await bitable.base.getSelection();
+      
+      if (selection && selection.recordId && selection.fieldId) {
+        // Get the selected cell value
+        const field = await table.getFieldById(selection.fieldId);
+        
+        // Get the cell value using the correct API
+        const cellValue = await field.getValue(selection.recordId);
+        
+        // Update the text field with the cell value
+        if (cellValue !== null && cellValue !== undefined) {
+          // Handle different types of cell values
+          let textValue = '';
+          
+          if (typeof cellValue === 'string') {
+            // If it's already a string, use it directly
+            textValue = cellValue;
+          } else if (typeof cellValue === 'object') {
+            // If it's an object, try to extract text content
+            if (cellValue.text !== undefined) {
+              // Some field types store text in a 'text' property
+              textValue = cellValue.text;
+            } else if (cellValue.value !== undefined) {
+              // Some field types store text in a 'value' property
+              textValue = cellValue.value;
+            } else if (Array.isArray(cellValue)) {
+              // If it's an array, join the elements
+              textValue = cellValue.map(item => {
+                if (typeof item === 'string') return item;
+                if (typeof item === 'object' && item.text !== undefined) return item.text;
+                return JSON.stringify(item);
+              }).join(', ');
+            } else {
+              // If we can't extract text, stringify the object
+              textValue = JSON.stringify(cellValue, null, 2);
+            }
+          } else {
+            // For other types, convert to string
+            textValue = String(cellValue);
+          }
+          
+          return textValue;
+        }
+      }
+      return '';
+    } catch (error) {
+      console.error('Failed to get cell value:', error);
+      return '';
+    }
+  };
+
   // Function to set up cell selection listener
   const setupCellSelectionListener = async (): Promise<() => void> => {
     try {
       // Get the active table
       const table = await bitable.base.getActiveTable();
-      
-      // Function to get the selected cell value
-      const getSelectedCellValue = async () => {
-        try {
-          // Get the current selection
-          const selection = await bitable.base.getSelection();
-          
-          if (selection && selection.recordId && selection.fieldId) {
-            // Get the selected cell value
-            const field = await table.getFieldById(selection.fieldId);
-            
-            // Get the cell value using the correct API
-            const cellValue = await field.getValue(selection.recordId);
-            
-            // Update the text field with the cell value
-            if (cellValue !== null && cellValue !== undefined) {
-              // Handle different types of cell values
-              let textValue = '';
-              
-              if (typeof cellValue === 'string') {
-                // If it's already a string, use it directly
-                textValue = cellValue;
-              } else if (typeof cellValue === 'object') {
-                // If it's an object, try to extract text content
-                if (cellValue.text !== undefined) {
-                  // Some field types store text in a 'text' property
-                  textValue = cellValue.text;
-                } else if (cellValue.value !== undefined) {
-                  // Some field types store text in a 'value' property
-                  textValue = cellValue.value;
-                } else if (Array.isArray(cellValue)) {
-                  // If it's an array, join the elements
-                  textValue = cellValue.map(item => {
-                    if (typeof item === 'string') return item;
-                    if (typeof item === 'object' && item.text !== undefined) return item.text;
-                    return JSON.stringify(item);
-                  }).join(', ');
-                } else {
-                  // If we can't extract text, stringify the object
-                  textValue = JSON.stringify(cellValue, null, 2);
-                }
-              } else {
-                // For other types, convert to string
-                textValue = String(cellValue);
-              }
-              
-              setText(textValue);
-            }
-          }
-        } catch (error) {
-          console.error('Failed to get selection:', error);
-        }
-      };
       
       // Set up a button to get the current selection (for manual triggering)
       const getSelectionButton = document.createElement('button');
@@ -181,7 +203,10 @@ function App() {
       document.body.appendChild(getSelectionButton);
       
       // Add event listener to the button
-      getSelectionButton.addEventListener('click', getSelectedCellValue);
+      getSelectionButton.addEventListener('click', async () => {
+        const textValue = await getCellValueFromSelection();
+        setText(textValue);
+      });
       
       // Set up automatic detection of cell selection
       // We'll use a polling approach since the SDK doesn't provide a direct way to listen for selection changes
@@ -195,7 +220,8 @@ function App() {
           // If the selection has changed, update the text field
           if (currentSelection !== lastSelection && currentSelection !== '') {
             lastSelection = currentSelection;
-            await getSelectedCellValue();
+            const textValue = await getCellValueFromSelection();
+            setText(textValue);
           }
         } catch (error) {
           console.error('Failed to check selection:', error);
@@ -355,59 +381,9 @@ function App() {
 
   // Function to reset text from selected cell
   const handleReset = async () => {
-    try {
-      // Get the active table
-      const table = await bitable.base.getActiveTable();
-      
-      // Get the current selection
-      const selection = await bitable.base.getSelection();
-      
-      if (selection && selection.recordId && selection.fieldId) {
-        // Get the selected cell value
-        const field = await table.getFieldById(selection.fieldId);
-        
-        // Get the cell value using the correct API
-        const cellValue = await field.getValue(selection.recordId);
-        
-        // Update the text field with the cell value
-        if (cellValue !== null && cellValue !== undefined) {
-          // Handle different types of cell values
-          let textValue = '';
-          
-          if (typeof cellValue === 'string') {
-            // If it's already a string, use it directly
-            textValue = cellValue;
-          } else if (typeof cellValue === 'object') {
-            // If it's an object, try to extract text content
-            if (cellValue.text !== undefined) {
-              // Some field types store text in a 'text' property
-              textValue = cellValue.text;
-            } else if (cellValue.value !== undefined) {
-              // Some field types store text in a 'value' property
-              textValue = cellValue.value;
-            } else if (Array.isArray(cellValue)) {
-              // If it's an array, join the elements
-              textValue = cellValue.map(item => {
-                if (typeof item === 'string') return item;
-                if (typeof item === 'object' && item.text !== undefined) return item.text;
-                return JSON.stringify(item);
-              }).join(', ');
-            } else {
-              // If we can't extract text, stringify the object
-              textValue = JSON.stringify(cellValue, null, 2);
-            }
-          } else {
-            // For other types, convert to string
-            textValue = String(cellValue);
-          }
-          
-          setText(textValue);
-          setShowCopyAlert(true);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to reset text:', error);
-    }
+    const textValue = await getCellValueFromSelection();
+    setText(textValue);
+    setShowCopyAlert(true);
   };
 
   return (
@@ -552,7 +528,7 @@ function App() {
                     }}
                   >
                     {key === 'normal' ? '普通' : 
-                     key === 'uncommon' ? '优秀' : 
+                     key === 'uncommon' ? '罕见' : 
                      key === 'rare' ? '稀有' : 
                      key === 'epic' ? '史诗' : 
                      key === 'legendary' ? '传说' : key}
@@ -713,19 +689,5 @@ function App() {
     </Container>
   );
 }
-
-// Helper function to determine text color based on background color
-const getContrastColor = (hexColor: string): string => {
-  // Convert hex to RGB
-  const r = parseInt(hexColor.slice(1, 3), 16);
-  const g = parseInt(hexColor.slice(3, 5), 16);
-  const b = parseInt(hexColor.slice(5, 7), 16);
-  
-  // Calculate luminance
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  
-  // Return black or white based on luminance
-  return luminance > 0.5 ? '#000000' : '#FFFFFF';
-};
 
 export default App; 
