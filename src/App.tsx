@@ -14,6 +14,8 @@ import {
   Snackbar,
   Alert,
   TextField,
+  Switch,
+  FormControlLabel,
 } from '@mui/material';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined';
@@ -112,6 +114,7 @@ function App() {
   const [previewBgColor, setPreviewBgColor] = useState('#0E1F34');
   const defaultBgColor = '#0E1F34';
   const [hasSelection, setHasSelection] = useState(false);
+  const [enableSegmentation, setEnableSegmentation] = useState(false);
 
   // Function to connect to Feishu Base
   const connectToBase = async () => {
@@ -371,6 +374,16 @@ function App() {
       .replace(/\\u00A0/g, '&nbsp;') // Non-breaking space
       .replace(/<space=([^>]+)>/g, '<span style="margin-right: $1"></span>'); // Custom space
     
+    // Handle text segmentation if enabled
+    if (enableSegmentation) {
+      const segments = htmlText.split('|').filter(segment => segment.trim() !== '');
+      if (segments.length > 1) {
+        htmlText = segments.map(segment => 
+          `<div style="margin-bottom: 8px;">• ${segment.trim()}</div>`
+        ).join('');
+      }
+    }
+    
     // Set the HTML content
     tempDiv.innerHTML = htmlText;
     
@@ -399,44 +412,57 @@ function App() {
         
         <EditorContainer>
           <Box sx={{ mb: 2 }}>
-            <ToggleButtonGroup size="small" sx={{ mb: 1 }}>
-              <ToggleButton
-                value="bold"
-                onClick={() => insertMarkup('<b>', '</b>')}
-              >
-                <FormatBoldIcon />
-              </ToggleButton>
-              <ToggleButton
-                value="italic"
-                onClick={() => insertMarkup('<i>', '</i>')}
-              >
-                <FormatItalicIcon />
-              </ToggleButton>
-              <ToggleButton
-                value="underline"
-                onClick={() => insertMarkup('<u>', '</u>')}
-              >
-                <FormatUnderlinedIcon />
-              </ToggleButton>
-              <ToggleButton
-                value="strikethrough"
-                onClick={() => insertMarkup('<s>', '</s>')}
-              >
-                <FormatStrikethroughIcon />
-              </ToggleButton>
-              <ToggleButton
-                value="superscript"
-                onClick={() => insertMarkup('<sup>', '</sup>')}
-              >
-                <SuperscriptIcon />
-              </ToggleButton>
-              <ToggleButton
-                value="subscript"
-                onClick={() => insertMarkup('<sub>', '</sub>')}
-              >
-                <SubscriptIcon />
-              </ToggleButton>
-            </ToggleButtonGroup>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+              <ToggleButtonGroup size="small">
+                <ToggleButton
+                  value="bold"
+                  onClick={() => insertMarkup('<b>', '</b>')}
+                >
+                  <FormatBoldIcon />
+                </ToggleButton>
+                <ToggleButton
+                  value="italic"
+                  onClick={() => insertMarkup('<i>', '</i>')}
+                >
+                  <FormatItalicIcon />
+                </ToggleButton>
+                <ToggleButton
+                  value="underline"
+                  onClick={() => insertMarkup('<u>', '</u>')}
+                >
+                  <FormatUnderlinedIcon />
+                </ToggleButton>
+                <ToggleButton
+                  value="strikethrough"
+                  onClick={() => insertMarkup('<s>', '</s>')}
+                >
+                  <FormatStrikethroughIcon />
+                </ToggleButton>
+                <ToggleButton
+                  value="superscript"
+                  onClick={() => insertMarkup('<sup>', '</sup>')}
+                >
+                  <SuperscriptIcon />
+                </ToggleButton>
+                <ToggleButton
+                  value="subscript"
+                  onClick={() => insertMarkup('<sub>', '</sub>')}
+                >
+                  <SubscriptIcon />
+                </ToggleButton>
+              </ToggleButtonGroup>
+              
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={enableSegmentation}
+                    onChange={(e) => setEnableSegmentation(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label="启用分段显示"
+              />
+            </Box>
 
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
               <FormControl size="small" sx={{ minWidth: 120 }}>
