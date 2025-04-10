@@ -22,7 +22,6 @@ import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import SuperscriptIcon from '@mui/icons-material/Superscript';
 import SubscriptIcon from '@mui/icons-material/Subscript';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { styled } from '@mui/material/styles';
 import { bitable } from '@lark-base-open/js-sdk';
 
@@ -316,14 +315,6 @@ function App() {
   // Function to handle text changes
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
-  };
-
-  // Function to copy text to clipboard
-  const handleCopy = async () => {
-    // Convert newlines to <br> tags
-    const textWithBrTags = text.replace(/\n/g, '<br>');
-    await navigator.clipboard.writeText(textWithBrTags);
-    setShowCopyAlert(true);
   };
 
   // Function to convert plain text with markup to Unity rich text
