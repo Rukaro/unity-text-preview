@@ -432,8 +432,10 @@ function App() {
     // Process size tags
     htmlText = htmlText.replace(/<size=([\d.]+)>(.*?)(<\/size>)?/g, (match, size, content, closeTag) => {
       if (closeTag) {
+        // If there's a closing tag, only wrap the content between tags
         return `<span style="font-size: ${size}px">${content}</span>`;
       } else {
+        // If no closing tag, wrap the content and all subsequent text
         return `<span style="font-size: ${size}px">${content}`;
       }
     });
@@ -441,8 +443,10 @@ function App() {
     // Process color tags
     htmlText = htmlText.replace(/<color=([^>]+)>(.*?)(<\/color>)?/g, (match, color, content, closeTag) => {
       if (closeTag) {
+        // If there's a closing tag, only wrap the content between tags
         return `<span style="color: ${color}">${content}</span>`;
       } else {
+        // If no closing tag, wrap the content and all subsequent text
         return `<span style="color: ${color}">${content}`;
       }
     });
