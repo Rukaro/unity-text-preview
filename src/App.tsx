@@ -398,20 +398,58 @@ function App() {
     // Create a temporary div to parse the markup
     const tempDiv = document.createElement('div');
     
-    // Replace Unity rich text tags with HTML tags
-    let htmlText = plainText
-      .replace(/<b>(.*?)<\/b>/g, '<strong>$1</strong>')
-      .replace(/<i>(.*?)<\/i>/g, '<em>$1</em>')
-      .replace(/<u>(.*?)<\/u>/g, '<u>$1</u>')
-      .replace(/<s>(.*?)<\/s>/g, '<s>$1</s>')
-      .replace(/<sup>(.*?)<\/sup>/g, '<sup>$1</sup>')
-      .replace(/<sub>(.*?)<\/sub>/g, '<sub>$1</sub>')
-      .replace(/<size=([\d.]+)>(.*?)<\/size>/g, (match, size, content) => {
+    // Process tags in sequence, keeping track of open tags
+    let htmlText = plainText;
+    const openTags: string[] = [];
+    
+    // Process each tag type
+    const tagTypes = [
+      { open: '<b>', close: '</b>', html: 'strong' },
+      { open: '<i>', close: '</i>', html: 'em' },
+      { open: '<u>', close: '</u>', html: 'u' },
+      { open: '<s>', close: '</s>', html: 's' },
+      { open: '<sup>', close: '</sup>', html: 'sup' },
+      { open: '<sub>', close: '</sub>', html: 'sub' },
+    ];
+    
+    // Process basic tags
+    tagTypes.forEach(({ open, close, html }) => {
+      const parts = htmlText.split(open);
+      if (parts.length > 1) {
+        htmlText = parts.map((part, index) => {
+          if (index === 0) return part;
+          const closeIndex = part.indexOf(close);
+          if (closeIndex === -1) {
+            // No closing tag found, wrap the entire remaining text
+            return `<${html}>${part}</${html}>`;
+          } else {
+            // Closing tag found, wrap only the content between tags
+            return `<${html}>${part.substring(0, closeIndex)}</${html}>${part.substring(closeIndex + close.length)}`;
+          }
+        }).join('');
+      }
+    });
+    
+    // Process size tags
+    htmlText = htmlText.replace(/<size=([\d.]+)>(.*?)(<\/size>)?/g, (match, size, content, closeTag) => {
+      if (closeTag) {
         return `<span style="font-size: ${size}px">${content}</span>`;
-      })
-      .replace(/<color=([^>]+)>(.*?)<\/color>/g, (match, color, content) => {
+      } else {
+        return `<span style="font-size: ${size}px">${content}`;
+      }
+    });
+    
+    // Process color tags
+    htmlText = htmlText.replace(/<color=([^>]+)>(.*?)(<\/color>)?/g, (match, color, content, closeTag) => {
+      if (closeTag) {
         return `<span style="color: ${color}">${content}</span>`;
-      })
+      } else {
+        return `<span style="color: ${color}">${content}`;
+      }
+    });
+    
+    // Process special characters
+    htmlText = htmlText
       .replace(/\\u00AD/g, '&shy;') // Soft hyphen
       .replace(/\\u00A0/g, '&nbsp;') // Non-breaking space
       .replace(/<space=([^>]+)>/g, '<span style="margin-right: $1"></span>'); // Custom space
