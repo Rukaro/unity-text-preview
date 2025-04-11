@@ -398,9 +398,8 @@ function App() {
     // Create a temporary div to parse the markup
     const tempDiv = document.createElement('div');
     
-    // Process tags in sequence, keeping track of open tags
+    // Process tags in sequence
     let htmlText = plainText;
-    const openTags: string[] = [];
     
     // Process each tag type
     const tagTypes = [
