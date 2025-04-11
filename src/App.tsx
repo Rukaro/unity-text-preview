@@ -114,7 +114,7 @@ function App() {
   const [previewBgColor, setPreviewBgColor] = useState('#0E1F34');
   const defaultBgColor = '#0E1F34';
   const [hasSelection, setHasSelection] = useState(false);
-  const [enableSegmentation, setEnableSegmentation] = useState(false);
+  const [enableSegmentation, setEnableSegmentation] = useState(true);
   const [isCellEditable, setIsCellEditable] = useState(true);
 
   // Function to connect to Feishu Base
@@ -154,6 +154,12 @@ function App() {
         const fieldType = field.type;
         const isEditable = !['formula', 'lookup', 'rollup'].includes(fieldType);
         setIsCellEditable(isEditable);
+        
+        // If field is not editable, return empty string and disable input
+        if (!isEditable) {
+          setText('');
+          return '';
+        }
         
         // Get the cell value using the correct API
         const cellValue = await field.getValue(selection.recordId);
@@ -401,8 +407,7 @@ function App() {
       .replace(/<sup>(.*?)<\/sup>/g, '<sup>$1</sup>')
       .replace(/<sub>(.*?)<\/sub>/g, '<sub>$1</sub>')
       .replace(/<size=([\d.]+)>(.*?)<\/size>/g, (match, size, content) => {
-        const fontSize = parseFloat(size) * 100;
-        return `<span style="font-size: ${fontSize}%">${content}</span>`;
+        return `<span style="font-size: ${size}px">${content}</span>`;
       })
       .replace(/<color=([^>]+)>(.*?)<\/color>/g, (match, color, content) => {
         return `<span style="color: ${color}">${content}</span>`;
