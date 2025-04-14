@@ -441,52 +441,37 @@ function App() {
       }
     });
     
-    // Process size tags
-    const sizeRegex = /<size=([\d.]+)>(.*?)(<\/size>)?/g;
-    let match;
-    let lastIndex = 0;
-    let result = '';
-    
-    while ((match = sizeRegex.exec(htmlText)) !== null) {
-      const [fullMatch, size, content, closeTag] = match;
-      result += htmlText.substring(lastIndex, match.index);
-      
-      if (closeTag) {
-        // If there's a closing tag, only wrap the content between tags
-        result += `<span style="font-size: ${size}px">${content}</span>`;
-      } else {
-        // If no closing tag, wrap the content and all subsequent text
-        result += `<span style="font-size: ${size}px">${content}`;
+    // Process size tags - use a simpler approach
+    let sizeMatches = htmlText.match(/<size=([\d.]+)>(.*?)(<\/size>)?/g) || [];
+    sizeMatches.forEach(match => {
+      const sizeMatch = match.match(/<size=([\d.]+)>(.*?)(<\/size>)?/);
+      if (sizeMatch) {
+        const [fullMatch, size, content, closeTag] = sizeMatch;
+        if (closeTag) {
+          // If there's a closing tag, only wrap the content between tags
+          htmlText = htmlText.replace(fullMatch, `<span style="font-size: ${size}px">${content}</span>`);
+        } else {
+          // If no closing tag, wrap the content and all subsequent text
+          htmlText = htmlText.replace(fullMatch, `<span style="font-size: ${size}px">${content}`);
+        }
       }
-      
-      lastIndex = match.index + fullMatch.length;
-    }
+    });
     
-    result += htmlText.substring(lastIndex);
-    htmlText = result;
-    
-    // Process color tags
-    const colorRegex = /<color=([^>]+)>(.*?)(<\/color>)?/g;
-    lastIndex = 0;
-    result = '';
-    
-    while ((match = colorRegex.exec(htmlText)) !== null) {
-      const [fullMatch, color, content, closeTag] = match;
-      result += htmlText.substring(lastIndex, match.index);
-      
-      if (closeTag) {
-        // If there's a closing tag, only wrap the content between tags
-        result += `<span style="color: ${color}">${content}</span>`;
-      } else {
-        // If no closing tag, wrap the content and all subsequent text
-        result += `<span style="color: ${color}">${content}`;
+    // Process color tags - use a simpler approach
+    let colorMatches = htmlText.match(/<color=([^>]+)>(.*?)(<\/color>)?/g) || [];
+    colorMatches.forEach(match => {
+      const colorMatch = match.match(/<color=([^>]+)>(.*?)(<\/color>)?/);
+      if (colorMatch) {
+        const [fullMatch, color, content, closeTag] = colorMatch;
+        if (closeTag) {
+          // If there's a closing tag, only wrap the content between tags
+          htmlText = htmlText.replace(fullMatch, `<span style="color: ${color}">${content}</span>`);
+        } else {
+          // If no closing tag, wrap the content and all subsequent text
+          htmlText = htmlText.replace(fullMatch, `<span style="color: ${color}">${content}`);
+        }
       }
-      
-      lastIndex = match.index + fullMatch.length;
-    }
-    
-    result += htmlText.substring(lastIndex);
-    htmlText = result;
+    });
     
     // Process special characters
     htmlText = htmlText
