@@ -429,27 +429,52 @@ function App() {
       }
     });
     
-    // Process size tags
-    htmlText = htmlText.replace(/<size=([\d.]+)>(.*?)(<\/size>)?/g, (match, size, content, closeTag) => {
-      if (closeTag) {
-        // If there's a closing tag, only wrap the content between tags
-        return `<span style="font-size: ${size}px">${content}</span>`;
-      } else {
-        // If no closing tag, wrap the content and all subsequent text
-        return `<span style="font-size: ${size}px">${content}`;
-      }
-    });
+    // Process size tags with a more reliable approach
+    let sizeTagRegex = /<size=([\d.]+)>(.*?)(<\/size>)?/g;
+    let match;
+    let lastIndex = 0;
+    let result = '';
     
-    // Process color tags
-    htmlText = htmlText.replace(/<color=([^>]+)>(.*?)(<\/color>)?/g, (match, color, content, closeTag) => {
+    while ((match = sizeTagRegex.exec(htmlText)) !== null) {
+      const [fullMatch, size, content, closeTag] = match;
+      result += htmlText.substring(lastIndex, match.index);
+      
       if (closeTag) {
         // If there's a closing tag, only wrap the content between tags
-        return `<span style="color: ${color}">${content}</span>`;
+        result += `<span style="font-size: ${size}px">${content}</span>`;
       } else {
         // If no closing tag, wrap the content and all subsequent text
-        return `<span style="color: ${color}">${content}`;
+        result += `<span style="font-size: ${size}px">${content}`;
       }
-    });
+      
+      lastIndex = match.index + fullMatch.length;
+    }
+    
+    result += htmlText.substring(lastIndex);
+    htmlText = result;
+    
+    // Process color tags with a more reliable approach
+    let colorTagRegex = /<color=([^>]+)>(.*?)(<\/color>)?/g;
+    lastIndex = 0;
+    result = '';
+    
+    while ((match = colorTagRegex.exec(htmlText)) !== null) {
+      const [fullMatch, color, content, closeTag] = match;
+      result += htmlText.substring(lastIndex, match.index);
+      
+      if (closeTag) {
+        // If there's a closing tag, only wrap the content between tags
+        result += `<span style="color: ${color}">${content}</span>`;
+      } else {
+        // If no closing tag, wrap the content and all subsequent text
+        result += `<span style="color: ${color}">${content}`;
+      }
+      
+      lastIndex = match.index + fullMatch.length;
+    }
+    
+    result += htmlText.substring(lastIndex);
+    htmlText = result;
     
     // Process special characters
     htmlText = htmlText
