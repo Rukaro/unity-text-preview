@@ -563,6 +563,7 @@ function App() {
   };
 
   // Function to handle success alert close
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSuccessClose = () => {
     setSuccessOpacity(0);
     setTimeout(() => {
