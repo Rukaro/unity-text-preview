@@ -159,50 +159,42 @@ function App() {
         // Get the cell value using the correct API
         const cellValue = await field.getValue(selection.recordId);
         
-        // Update the text field with the cell value
+        // Process the cell value
         if (cellValue !== null && cellValue !== undefined) {
-          // Handle different types of cell values
           let textValue = '';
           
           if (typeof cellValue === 'string') {
-            // If it's already a string, use it directly
             textValue = cellValue;
           } else if (typeof cellValue === 'object') {
-            // If it's an object, try to extract text content
             if (cellValue.text !== undefined) {
-              // Some field types store text in a 'text' property
               textValue = cellValue.text;
             } else if (cellValue.value !== undefined) {
-              // Some field types store text in a 'value' property
               textValue = cellValue.value;
             } else if (Array.isArray(cellValue)) {
-              // If it's an array, join the elements
               textValue = cellValue.map(item => {
                 if (typeof item === 'string') return item;
                 if (typeof item === 'object' && item.text !== undefined) return item.text;
                 return JSON.stringify(item);
               }).join(', ');
             } else {
-              // If we can't extract text, stringify the object
               textValue = JSON.stringify(cellValue, null, 2);
             }
           } else {
-            // For other types, convert to string
             textValue = String(cellValue);
           }
           
-          // Replace <br> with newlines for display
-          textValue = textValue.replace(/<br>/g, '\n');
-          setText(textValue);
+          // Don't replace <br> with newlines, keep them as literal text
+          console.log('Cell value:', textValue);
           return textValue;
+        } else {
+          return '';
         }
       } else {
         setHasSelection(false);
+        return '';
       }
-      return '';
     } catch (error) {
       console.error('Failed to get cell value:', error);
-      setHasSelection(false);
       return '';
     }
   };
@@ -294,12 +286,13 @@ function App() {
         // Get the field
         const field = await table.getFieldById(selection.fieldId);
         
-        // Replace newlines with <br> before updating
-        const textWithBr = text.replace(/\n/g, '<br>');
+        // Convert newlines to <br> tags
+        const textToSave = text.replace(/\n/g, '<br>');
+        console.log('Text to save:', textToSave);
         
         try {
           // Update the cell value
-          await field.setValue(selection.recordId, textWithBr);
+          await field.setValue(selection.recordId, textToSave);
           
           // Get the updated cell value to ensure sync
           const updatedValue = await field.getValue(selection.recordId);
@@ -327,8 +320,8 @@ function App() {
               newText = String(updatedValue);
             }
             
-            // Replace <br> with newlines for display
-            newText = newText.replace(/<br>/g, '\n');
+            // Don't replace <br> with newlines, keep them as literal text
+            console.log('Updated value:', newText);
             setText(newText);
           }
           
