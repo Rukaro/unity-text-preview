@@ -395,105 +395,113 @@ function App() {
 
   // Function to convert plain text with markup to Unity rich text
   const convertToUnityRichText = (plainText: string): string => {
-    // Create a temporary div to parse the markup
-    const tempDiv = document.createElement('div');
-    
-    // Process tags in sequence
-    let htmlText = plainText;
-    
-    // Process basic tags (b, i, u, s, sup, sub)
-    const basicTags = [
-      { tag: 'b', html: 'strong' },
-      { tag: 'i', html: 'em' },
-      { tag: 'u', html: 'u' },
-      { tag: 's', html: 's' },
-      { tag: 'sup', html: 'sup' },
-      { tag: 'sub', html: 'sub' },
-    ];
-    
-    // Process each basic tag
-    basicTags.forEach(({ tag, html }) => {
-      // Find all opening tags
-      const openTag = `<${tag}>`;
-      const closeTag = `</${tag}>`;
+    let result = '';
+    let currentIndex = 0;
+    const stack: Array<{tag: string, startIndex: number, type: string}> = [];
+    const text = plainText;
+
+    while (currentIndex < text.length) {
+      // Find the next tag
+      const nextTagStart = text.indexOf('<', currentIndex);
       
-      // Split by opening tag
-      const parts = htmlText.split(openTag);
-      
-      if (parts.length > 1) {
-        // Process each part after an opening tag
-        const processedParts = parts.map((part, index) => {
-          if (index === 0) return part; // First part is before any opening tag
-          
-          // Check if there's a closing tag
-          const closeIndex = part.indexOf(closeTag);
-          
-          if (closeIndex === -1) {
-            // No closing tag found, apply to all remaining text
-            return `<${html}>${part}</${html}>`;
-          } else {
-            // Closing tag found, only apply to content between tags
-            return `<${html}>${part.substring(0, closeIndex)}</${html}>${part.substring(closeIndex + closeTag.length)}`;
+      if (nextTagStart === -1) {
+        // No more tags, add the remaining text
+        result += text.slice(currentIndex);
+        break;
+      }
+
+      // Add text before the tag
+      result += text.slice(currentIndex, nextTagStart);
+
+      // Find the end of the tag
+      const tagEnd = text.indexOf('>', nextTagStart);
+      if (tagEnd === -1) {
+        // Unclosed tag syntax, treat as text
+        result += text.slice(nextTagStart);
+        break;
+      }
+
+      const fullTag = text.slice(nextTagStart, tagEnd + 1);
+      const isClosingTag = fullTag.startsWith('</');
+
+      if (isClosingTag) {
+        const tagName = fullTag.slice(2, -1);
+        // Find matching opening tag in stack
+        const stackIndex = stack.findIndex(item => item.tag === tagName);
+        if (stackIndex !== -1) {
+          // Close all tags up to and including this one
+          for (let i = stack.length - 1; i >= stackIndex; i--) {
+            const item = stack[i];
+            if (item.type === 'color') {
+              result += '</span>';
+            } else if (item.type === 'size') {
+              result += '</span>';
+            } else {
+              result += `</${item.tag}>`;
+            }
+            stack.pop();
           }
-        });
-        
-        htmlText = processedParts.join('');
-      }
-    });
-    
-    // Process size tags - use a simpler approach
-    let sizeMatches = htmlText.match(/<size=([\d.]+)>(.*?)(<\/size>)?/g) || [];
-    sizeMatches.forEach(match => {
-      const sizeMatch = match.match(/<size=([\d.]+)>(.*?)(<\/size>)?/);
-      if (sizeMatch) {
-        const [fullMatch, size, content, closeTag] = sizeMatch;
-        if (closeTag) {
-          // If there's a closing tag, only wrap the content between tags
-          htmlText = htmlText.replace(fullMatch, `<span style="font-size: ${size}px">${content}</span>`);
+        }
+      } else {
+        // Opening tag
+        let tagContent = fullTag.slice(1, -1);
+        if (tagContent.startsWith('color=')) {
+          const color = tagContent.slice(6);
+          result += `<span style="color: ${color}">`;
+          stack.push({tag: 'color', startIndex: result.length, type: 'color'});
+        } else if (tagContent.startsWith('size=')) {
+          const size = tagContent.slice(5);
+          result += `<span style="font-size: ${size}px">`;
+          stack.push({tag: 'size', startIndex: result.length, type: 'size'});
         } else {
-          // If no closing tag, wrap the content and all subsequent text
-          htmlText = htmlText.replace(fullMatch, `<span style="font-size: ${size}px">${content}`);
+          const tag = tagContent;
+          const htmlTag = tag === 'b' ? 'strong' :
+                         tag === 'i' ? 'em' :
+                         tag === 'u' ? 'u' :
+                         tag === 's' ? 's' :
+                         tag === 'sup' ? 'sup' :
+                         tag === 'sub' ? 'sub' : tag;
+          result += `<${htmlTag}>`;
+          stack.push({tag: tag, startIndex: result.length, type: 'basic'});
         }
       }
-    });
-    
-    // Process color tags - use a simpler approach
-    let colorMatches = htmlText.match(/<color=([^>]+)>(.*?)(<\/color>)?/g) || [];
-    colorMatches.forEach(match => {
-      const colorMatch = match.match(/<color=([^>]+)>(.*?)(<\/color>)?/);
-      if (colorMatch) {
-        const [fullMatch, color, content, closeTag] = colorMatch;
-        if (closeTag) {
-          // If there's a closing tag, only wrap the content between tags
-          htmlText = htmlText.replace(fullMatch, `<span style="color: ${color}">${content}</span>`);
-        } else {
-          // If no closing tag, wrap the content and all subsequent text
-          htmlText = htmlText.replace(fullMatch, `<span style="color: ${color}">${content}`);
-        }
+
+      currentIndex = tagEnd + 1;
+    }
+
+    // Close any remaining open tags
+    for (let i = stack.length - 1; i >= 0; i--) {
+      const item = stack[i];
+      if (item.type === 'color' || item.type === 'size') {
+        result += '</span>';
+      } else {
+        const htmlTag = item.tag === 'b' ? 'strong' :
+                       item.tag === 'i' ? 'em' :
+                       item.tag === 'u' ? 'u' :
+                       item.tag === 's' ? 's' :
+                       item.tag === 'sup' ? 'sup' :
+                       item.tag === 'sub' ? 'sub' : item.tag;
+        result += `</${htmlTag}>`;
       }
-    });
-    
+    }
+
     // Process special characters
-    htmlText = htmlText
-      .replace(/\\u00AD/g, '&shy;') // Soft hyphen
-      .replace(/\\u00A0/g, '&nbsp;') // Non-breaking space
-      .replace(/<space=([^>]+)>/g, '<span style="margin-right: $1"></span>'); // Custom space
-    
+    result = result
+      .replace(/\\u00AD/g, '&shy;')
+      .replace(/\\u00A0/g, '&nbsp;')
+      .replace(/<space=([^>]+)>/g, '<span style="margin-right: $1"></span>');
+
     // Handle text segmentation if enabled
     if (enableSegmentation) {
-      const segments = htmlText.split('|').filter(segment => segment.trim() !== '');
+      const segments = result.split('|').filter(segment => segment.trim() !== '');
       if (segments.length > 1) {
-        htmlText = segments.map(segment => 
+        result = segments.map(segment => 
           `<div style="margin-bottom: 8px;">• ${segment.trim()}</div>`
         ).join('');
       }
     }
-    
-    // Set the HTML content
-    tempDiv.innerHTML = htmlText;
-    
-    // Return the HTML content
-    return tempDiv.innerHTML;
+
+    return result;
   };
 
   // Function to reset preview background color to default
