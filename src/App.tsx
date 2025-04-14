@@ -24,6 +24,7 @@ import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import SuperscriptIcon from '@mui/icons-material/Superscript';
 import SubscriptIcon from '@mui/icons-material/Subscript';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import SaveIcon from '@mui/icons-material/Save';
 import { styled } from '@mui/material/styles';
 import { bitable } from '@lark-base-open/js-sdk';
 
@@ -115,7 +116,9 @@ function App() {
   const defaultBgColor = '#0E1F34';
   const [hasSelection, setHasSelection] = useState(false);
   const [enableSegmentation, setEnableSegmentation] = useState(true);
-  const [isCellEditable, setIsCellEditable] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showError, setShowError] = useState(false);
+  const [errorOpacity, setErrorOpacity] = useState(1);
 
   // Function to connect to Feishu Base
   const connectToBase = async () => {
@@ -149,17 +152,6 @@ function App() {
         const table = await bitable.base.getActiveTable();
         // Get the selected cell value
         const field = await table.getFieldById(selection.fieldId);
-        
-        // Check if the field is editable
-        const fieldType = field.type;
-        const isEditable = !['formula', 'lookup', 'rollup'].includes(fieldType);
-        setIsCellEditable(isEditable);
-        
-        // If field is not editable, return empty string and disable input
-        if (!isEditable) {
-          setText('');
-          return '';
-        }
         
         // Get the cell value using the correct API
         const cellValue = await field.getValue(selection.recordId);
@@ -196,6 +188,9 @@ function App() {
             textValue = String(cellValue);
           }
           
+          // Replace <br> with newlines for display
+          textValue = textValue.replace(/<br>/g, '\n');
+          setText(textValue);
           return textValue;
         }
       } else {
@@ -234,10 +229,14 @@ function App() {
           const currentSelection = selection ? `${selection.recordId}-${selection.fieldId}` : '';
           
           // If the selection has changed, update the text field
-          if (currentSelection !== lastSelection && currentSelection !== '') {
+          if (currentSelection !== lastSelection) {
             lastSelection = currentSelection;
-            const textValue = await getCellValueFromSelection();
-            setText(textValue);
+            if (currentSelection !== '') {
+              const textValue = await getCellValueFromSelection();
+              setText(textValue);
+            } else {
+              setHasSelection(false);
+            }
           }
         } catch (error) {
           console.error('Failed to check selection:', error);
@@ -295,45 +294,71 @@ function App() {
         // Replace newlines with <br> before updating
         const textWithBr = text.replace(/\n/g, '<br>');
         
-        // Update the cell value
-        await field.setValue(selection.recordId, textWithBr);
-        
-        // Get the updated cell value to ensure sync
-        const updatedValue = await field.getValue(selection.recordId);
-        
-        // Update the text field with the new value
-        if (updatedValue !== null && updatedValue !== undefined) {
-          let newText = '';
-          if (typeof updatedValue === 'string') {
-            newText = updatedValue;
-          } else if (typeof updatedValue === 'object') {
-            if (updatedValue.text !== undefined) {
-              newText = updatedValue.text;
-            } else if (updatedValue.value !== undefined) {
-              newText = updatedValue.value;
-            } else if (Array.isArray(updatedValue)) {
-              newText = updatedValue.map(item => {
-                if (typeof item === 'string') return item;
-                if (typeof item === 'object' && item.text !== undefined) return item.text;
-                return JSON.stringify(item);
-              }).join(', ');
+        try {
+          // Update the cell value
+          await field.setValue(selection.recordId, textWithBr);
+          
+          // Get the updated cell value to ensure sync
+          const updatedValue = await field.getValue(selection.recordId);
+          
+          // Update the text field with the new value
+          if (updatedValue !== null && updatedValue !== undefined) {
+            let newText = '';
+            if (typeof updatedValue === 'string') {
+              newText = updatedValue;
+            } else if (typeof updatedValue === 'object') {
+              if (updatedValue.text !== undefined) {
+                newText = updatedValue.text;
+              } else if (updatedValue.value !== undefined) {
+                newText = updatedValue.value;
+              } else if (Array.isArray(updatedValue)) {
+                newText = updatedValue.map(item => {
+                  if (typeof item === 'string') return item;
+                  if (typeof item === 'object' && item.text !== undefined) return item.text;
+                  return JSON.stringify(item);
+                }).join(', ');
+              } else {
+                newText = JSON.stringify(updatedValue, null, 2);
+              }
             } else {
-              newText = JSON.stringify(updatedValue, null, 2);
+              newText = String(updatedValue);
             }
-          } else {
-            newText = String(updatedValue);
+            
+            // Replace <br> with newlines for display
+            newText = newText.replace(/<br>/g, '\n');
+            setText(newText);
           }
           
-          // Replace <br> with newlines for display
-          newText = newText.replace(/<br>/g, '\n');
-          setText(newText);
+          // Show success message
+          setShowCopyAlert(true);
+        } catch (error) {
+          console.error('Failed to update cell:', error);
+          setErrorMessage('保存失败，文本与单元格类型不匹配');
+          setShowError(true);
+          setErrorOpacity(1);
+          
+          // Auto-hide error message after 1 second with fade effect
+          setTimeout(() => {
+            setErrorOpacity(0);
+            setTimeout(() => {
+              setShowError(false);
+            }, 500); // Wait for fade animation to complete
+          }, 500); // Start fading after 0.5 seconds
         }
-        
-        // Show success message
-        setShowCopyAlert(true);
       }
     } catch (error) {
       console.error('Failed to update cell:', error);
+      setErrorMessage('保存失败，文本与单元格类型不匹配');
+      setShowError(true);
+      setErrorOpacity(1);
+      
+      // Auto-hide error message after 1 second with fade effect
+      setTimeout(() => {
+        setErrorOpacity(0);
+        setTimeout(() => {
+          setShowError(false);
+        }, 500); // Wait for fade animation to complete
+      }, 500); // Start fading after 0.5 seconds
     }
   };
 
@@ -514,6 +539,14 @@ function App() {
     const textValue = await getCellValueFromSelection();
     setText(textValue);
     setShowCopyAlert(true);
+  };
+
+  // Function to handle error alert close
+  const handleErrorClose = () => {
+    setErrorOpacity(0);
+    setTimeout(() => {
+      setShowError(false);
+    }, 500); // Wait for fade animation to complete
   };
 
   return (
@@ -754,9 +787,17 @@ function App() {
                 variant="contained"
                 color="primary"
                 onClick={updateSelectedCell}
-                disabled={!isConnected || !isCellEditable}
+                disabled={!isConnected || !hasSelection}
+                startIcon={<SaveIcon />}
+                sx={{
+                  minWidth: '100px',
+                  '&.Mui-disabled': {
+                    backgroundColor: '#ccc',
+                    color: '#666'
+                  }
+                }}
               >
-                更新单元格
+                保存
               </Button>
             </Box>
           </Box>
@@ -830,6 +871,39 @@ function App() {
           {isConnected ? '已连接到多维表格' : '文本已复制到剪贴板！'}
         </Alert>
       </Snackbar>
+
+      {/* Custom error alert that appears in the middle of the screen */}
+      {showError && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            opacity: errorOpacity,
+            transition: 'opacity 0.5s ease',
+          }}
+          onClick={handleErrorClose}
+        >
+          <Alert 
+            severity="error" 
+            sx={{ 
+              width: '80%', 
+              maxWidth: '400px',
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+              cursor: 'pointer',
+            }}
+          >
+            {errorMessage}
+          </Alert>
+        </Box>
+      )}
     </Container>
   );
 }
