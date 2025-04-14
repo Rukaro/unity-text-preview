@@ -119,6 +119,9 @@ function App() {
   const [errorMessage, setErrorMessage] = useState('');
   const [showError, setShowError] = useState(false);
   const [errorOpacity, setErrorOpacity] = useState(1);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [successOpacity, setSuccessOpacity] = useState(1);
 
   // Function to connect to Feishu Base
   const connectToBase = async () => {
@@ -330,7 +333,17 @@ function App() {
           }
           
           // Show success message
-          setShowCopyAlert(true);
+          setSuccessMessage('保存成功');
+          setShowSuccess(true);
+          setSuccessOpacity(1);
+          
+          // Auto-hide success message after 1 second with fade effect
+          setTimeout(() => {
+            setSuccessOpacity(0);
+            setTimeout(() => {
+              setShowSuccess(false);
+            }, 500); // Wait for fade animation to complete
+          }, 500); // Start fading after 0.5 seconds
         } catch (error) {
           console.error('Failed to update cell:', error);
           setErrorMessage('保存失败，文本与单元格类型不匹配');
@@ -546,6 +559,14 @@ function App() {
     setErrorOpacity(0);
     setTimeout(() => {
       setShowError(false);
+    }, 500); // Wait for fade animation to complete
+  };
+
+  // Function to handle success alert close
+  const handleSuccessClose = () => {
+    setSuccessOpacity(0);
+    setTimeout(() => {
+      setShowSuccess(false);
     }, 500); // Wait for fade animation to complete
   };
 
@@ -901,6 +922,37 @@ function App() {
             }}
           >
             {errorMessage}
+          </Alert>
+        </Box>
+      )}
+
+      {/* Custom success alert that appears in the middle of the screen */}
+      {showSuccess && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            opacity: successOpacity,
+            transition: 'opacity 0.5s ease',
+            pointerEvents: 'none',
+          }}
+        >
+          <Alert 
+            severity="success" 
+            sx={{ 
+              width: '80%', 
+              maxWidth: '400px',
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+            }}
+          >
+            {successMessage}
           </Alert>
         </Box>
       )}
