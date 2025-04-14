@@ -401,41 +401,53 @@ function App() {
     // Process tags in sequence
     let htmlText = plainText;
     
-    // Process each tag type
-    const tagTypes = [
-      { open: '<b>', close: '</b>', html: 'strong' },
-      { open: '<i>', close: '</i>', html: 'em' },
-      { open: '<u>', close: '</u>', html: 'u' },
-      { open: '<s>', close: '</s>', html: 's' },
-      { open: '<sup>', close: '</sup>', html: 'sup' },
-      { open: '<sub>', close: '</sub>', html: 'sub' },
+    // Process basic tags (b, i, u, s, sup, sub)
+    const basicTags = [
+      { tag: 'b', html: 'strong' },
+      { tag: 'i', html: 'em' },
+      { tag: 'u', html: 'u' },
+      { tag: 's', html: 's' },
+      { tag: 'sup', html: 'sup' },
+      { tag: 'sub', html: 'sub' },
     ];
     
-    // Process basic tags
-    tagTypes.forEach(({ open, close, html }) => {
-      const parts = htmlText.split(open);
+    // Process each basic tag
+    basicTags.forEach(({ tag, html }) => {
+      // Find all opening tags
+      const openTag = `<${tag}>`;
+      const closeTag = `</${tag}>`;
+      
+      // Split by opening tag
+      const parts = htmlText.split(openTag);
+      
       if (parts.length > 1) {
-        htmlText = parts.map((part, index) => {
-          if (index === 0) return part;
-          const closeIndex = part.indexOf(close);
+        // Process each part after an opening tag
+        const processedParts = parts.map((part, index) => {
+          if (index === 0) return part; // First part is before any opening tag
+          
+          // Check if there's a closing tag
+          const closeIndex = part.indexOf(closeTag);
+          
           if (closeIndex === -1) {
-            // No closing tag found, wrap the entire remaining text
+            // No closing tag found, apply to all remaining text
             return `<${html}>${part}</${html}>`;
           } else {
-            // Closing tag found, wrap only the content between tags
-            return `<${html}>${part.substring(0, closeIndex)}</${html}>${part.substring(closeIndex + close.length)}`;
+            // Closing tag found, only apply to content between tags
+            return `<${html}>${part.substring(0, closeIndex)}</${html}>${part.substring(closeIndex + closeTag.length)}`;
           }
-        }).join('');
+        });
+        
+        htmlText = processedParts.join('');
       }
     });
     
-    // Process size tags with a more reliable approach
-    let sizeTagRegex = /<size=([\d.]+)>(.*?)(<\/size>)?/g;
+    // Process size tags
+    const sizeRegex = /<size=([\d.]+)>(.*?)(<\/size>)?/g;
     let match;
     let lastIndex = 0;
     let result = '';
     
-    while ((match = sizeTagRegex.exec(htmlText)) !== null) {
+    while ((match = sizeRegex.exec(htmlText)) !== null) {
       const [fullMatch, size, content, closeTag] = match;
       result += htmlText.substring(lastIndex, match.index);
       
@@ -453,12 +465,12 @@ function App() {
     result += htmlText.substring(lastIndex);
     htmlText = result;
     
-    // Process color tags with a more reliable approach
-    let colorTagRegex = /<color=([^>]+)>(.*?)(<\/color>)?/g;
+    // Process color tags
+    const colorRegex = /<color=([^>]+)>(.*?)(<\/color>)?/g;
     lastIndex = 0;
     result = '';
     
-    while ((match = colorTagRegex.exec(htmlText)) !== null) {
+    while ((match = colorRegex.exec(htmlText)) !== null) {
       const [fullMatch, color, content, closeTag] = match;
       result += htmlText.substring(lastIndex, match.index);
       
