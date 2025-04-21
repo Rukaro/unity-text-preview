@@ -431,6 +431,14 @@ function App() {
     const stack: Array<{tag: string, startIndex: number, type: string}> = [];
     const text = plainText;
 
+    // Check if text contains Arabic characters
+    const containsArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
+    
+    // Add RTL support if Arabic is detected
+    if (containsArabic) {
+      result += '<div dir="rtl" style="text-align: right;">';
+    }
+
     while (currentIndex < text.length) {
       // Find the next tag
       const nextTagStart = text.indexOf('<', currentIndex);
@@ -514,6 +522,11 @@ function App() {
                        item.tag === 'sub' ? 'sub' : item.tag;
         result += `</${htmlTag}>`;
       }
+    }
+
+    // Close RTL div if Arabic was detected
+    if (containsArabic) {
+      result += '</div>';
     }
 
     // Process special characters
@@ -870,6 +883,11 @@ function App() {
               '& s': { textDecoration: 'line-through' },
               '& sup': { verticalAlign: 'super', fontSize: 'smaller' },
               '& sub': { verticalAlign: 'sub', fontSize: 'smaller' },
+              '& [dir="rtl"]': { 
+                textAlign: 'right',
+                direction: 'rtl',
+                unicodeBidi: 'embed'
+              }
             }}
             dangerouslySetInnerHTML={{ __html: convertToUnityRichText(text) }}
           />
