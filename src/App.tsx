@@ -155,7 +155,7 @@ function App() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [successOpacity, setSuccessOpacity] = useState(1);
   const [showTranslationDialog, setShowTranslationDialog] = useState(false);
-  const [targetLanguage, setTargetLanguage] = useState('en');
+  const [targetLanguage] = useState('en');
   const [translatedText, setTranslatedText] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
   const [translationError, setTranslationError] = useState('');
@@ -437,14 +437,6 @@ function App() {
     const textValue = await getCellValueFromSelection();
     setText(textValue);
     setShowCopyAlert(true);
-  };
-
-  // Function to handle error alert close
-  const handleErrorClose = () => {
-    setErrorOpacity(0);
-    setTimeout(() => {
-      setShowError(false);
-    }, 500); // Wait for fade animation to complete
   };
 
   // Function to handle success alert close
