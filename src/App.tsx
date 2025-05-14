@@ -149,7 +149,6 @@ function App() {
   const defaultBgColor = '#0E1F34';
   const [hasSelection, setHasSelection] = useState(false);
   const [enableSegmentation, setEnableSegmentation] = useState(true);
-  const [errorMessage, setErrorMessage] = useState('');
   const [showError, setShowError] = useState(false);
   const [errorOpacity, setErrorOpacity] = useState(1);
   const [successMessage, setSuccessMessage] = useState('');
@@ -561,11 +560,6 @@ function App() {
     setTranslationError('');
   };
 
-  // 处理语言选择变化
-  const handleLanguageChange = (event: any) => {
-    setTargetLanguage(event.target.value);
-  };
-
   return (
     <Container maxWidth="md">
       <Box sx={{ my: 4 }}>
@@ -905,39 +899,6 @@ function App() {
           {isConnected ? '已连接到多维表格' : '文本已复制到剪贴板！'}
         </Alert>
       </Snackbar>
-
-      {/* Custom error alert that appears in the middle of the screen */}
-      {showError && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            opacity: errorOpacity,
-            transition: 'opacity 0.5s ease',
-          }}
-          onClick={handleErrorClose}
-        >
-          <Alert 
-            severity="error" 
-            sx={{ 
-              width: '80%', 
-              maxWidth: '400px',
-              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
-              cursor: 'pointer',
-            }}
-          >
-            {errorMessage}
-          </Alert>
-        </Box>
-      )}
 
       {/* Custom success alert that appears in the middle of the screen */}
       {showSuccess && (
