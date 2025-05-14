@@ -149,8 +149,6 @@ function App() {
   const defaultBgColor = '#0E1F34';
   const [hasSelection, setHasSelection] = useState(false);
   const [enableSegmentation, setEnableSegmentation] = useState(true);
-  const [showError, setShowError] = useState(false);
-  const [errorOpacity, setErrorOpacity] = useState(1);
   const [successMessage, setSuccessMessage] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [successOpacity, setSuccessOpacity] = useState(1);
