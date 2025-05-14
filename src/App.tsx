@@ -16,6 +16,11 @@ import {
   TextField,
   Switch,
   FormControlLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  CircularProgress,
 } from '@mui/material';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined';
@@ -25,6 +30,7 @@ import SuperscriptIcon from '@mui/icons-material/Superscript';
 import SubscriptIcon from '@mui/icons-material/Subscript';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import SaveIcon from '@mui/icons-material/Save';
+import TranslateIcon from '@mui/icons-material/Translate';
 import { styled } from '@mui/material/styles';
 import { bitable } from '@lark-base-open/js-sdk';
 
@@ -33,11 +39,14 @@ const fontFaceStyle = document.createElement('style');
 fontFaceStyle.textContent = `
   @font-face {
     font-family: 'Alibaba PuHuiTi';
-    src: url('/AlibabaPuHuiTi-3-105-Heavy/AlibabaPuHuiTi-3-105-Heavy.woff2') format('woff2'),
-         url('/AlibabaPuHuiTi-3-105-Heavy/AlibabaPuHuiTi-3-105-Heavy.woff') format('woff'),
-         url('/AlibabaPuHuiTi-3-105-Heavy/AlibabaPuHuiTi-3-105-Heavy.ttf') format('truetype'),
-         url('/AlibabaPuHuiTi-3-105-Heavy/AlibabaPuHuiTi-3-105-Heavy.otf') format('opentype'),
-         url('/AlibabaPuHuiTi-3-105-Heavy/AlibabaPuHuiTi-3-105-Heavy.eot') format('embedded-opentype');
+    src: url('/AlibabaPuHuiTi-3-105-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Alibaba PuHuiTi';
+    src: url('/AlibabaPuHuiTi-3-105-Heavy.woff2') format('woff2');
     font-weight: 900;
     font-style: normal;
     font-display: swap;
@@ -107,6 +116,30 @@ const getContrastColor = (hexcolor: string): string => {
   return luminance > 0.5 ? '#000000' : '#FFFFFF';
 };
 
+// 支持的语言列表
+const supportedLanguages = [
+  { code: 'en', name: '英语' },
+  { code: 'ru', name: '俄语' },
+  { code: 'de', name: '德语' },
+  { code: 'fr', name: '法语' },
+  { code: 'it', name: '意大利语' },
+  { code: 'es', name: '西班牙语' },
+  { code: 'pt', name: '葡萄牙语' },
+  { code: 'pl', name: '波兰语' },
+  { code: 'ko', name: '韩语' },
+  { code: 'ja', name: '日语' },
+  { code: 'zh-CN', name: '简体中文' },
+  { code: 'zh-TW', name: '繁体中文' },
+  { code: 'id', name: '印度尼西亚语' },
+  { code: 'nl', name: '荷兰语' },
+  { code: 'fi', name: '芬兰语' },
+  { code: 'sv', name: '瑞典语' },
+  { code: 'no', name: '挪威语' },
+  { code: 'da', name: '丹麦语' },
+  { code: 'ar', name: '阿拉伯语' },
+  { code: 'tr', name: '土耳其语' },
+];
+
 function App() {
   const [text, setText] = useState('');
   const [showCopyAlert, setShowCopyAlert] = useState(false);
@@ -122,6 +155,14 @@ function App() {
   const [successMessage, setSuccessMessage] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [successOpacity, setSuccessOpacity] = useState(1);
+  const [showTranslationDialog, setShowTranslationDialog] = useState(false);
+  const [targetLanguage, setTargetLanguage] = useState('en');
+  const [translatedText, setTranslatedText] = useState('');
+  const [isTranslating, setIsTranslating] = useState(false);
+  const [translationError, setTranslationError] = useState('');
+  const [allTranslatedTexts, setAllTranslatedTexts] = useState<{ [lang: string]: string }>({});
+  const [activeLanguage, setActiveLanguage] = useState(targetLanguage);
+  const [showCopySnackbar, setShowCopySnackbar] = useState(false);
 
   // Function to connect to Feishu Base
   const connectToBase = async () => {
@@ -273,98 +314,42 @@ function App() {
     };
   }, [isConnected, setupCellSelectionListener]);
 
-  // Function to update the selected cell with the current text
-  const updateSelectedCell = async () => {
+  // Function to update the selected cell with the provided value
+  const updateSelectedCell = async (value: string) => {
     try {
       // Get the active table
-      const table = await bitable.base.getActiveTable();
-      
-      // Get the current selection
       const selection = await bitable.base.getSelection();
-      
       if (selection && selection.recordId && selection.fieldId) {
-        // Get the field
+        const table = await bitable.base.getActiveTable();
         const field = await table.getFieldById(selection.fieldId);
-        
-        // Convert newlines to <br> tags
-        const textToSave = text.replace(/\n/g, '<br>');
-        console.log('Text to save:', textToSave);
-        
-        try {
-          // Update the cell value
-          await field.setValue(selection.recordId, textToSave);
-          
-          // Get the updated cell value to ensure sync
-          const updatedValue = await field.getValue(selection.recordId);
-          
-          // Update the text field with the new value
-          if (updatedValue !== null && updatedValue !== undefined) {
-            let newText = '';
-            if (typeof updatedValue === 'string') {
-              newText = updatedValue;
-            } else if (typeof updatedValue === 'object') {
-              if (updatedValue.text !== undefined) {
-                newText = updatedValue.text;
-              } else if (updatedValue.value !== undefined) {
-                newText = updatedValue.value;
-              } else if (Array.isArray(updatedValue)) {
-                newText = updatedValue.map(item => {
-                  if (typeof item === 'string') return item;
-                  if (typeof item === 'object' && item.text !== undefined) return item.text;
-                  return JSON.stringify(item);
-                }).join(', ');
-              } else {
-                newText = JSON.stringify(updatedValue, null, 2);
-              }
-            } else {
-              newText = String(updatedValue);
-            }
-            
-            // Don't replace <br> with newlines, keep them as literal text
-            console.log('Updated value:', newText);
-            setText(newText);
+        // 保存 value 到单元格
+        await field.setValue(selection.recordId, value);
+        // 获取最新值同步到界面
+        const updatedValue = await field.getValue(selection.recordId);
+        let newText = '';
+        if (typeof updatedValue === 'string') {
+          newText = updatedValue;
+        } else if (typeof updatedValue === 'object') {
+          if (updatedValue.text !== undefined) {
+            newText = updatedValue.text;
+          } else if (updatedValue.value !== undefined) {
+            newText = updatedValue.value;
+          } else if (Array.isArray(updatedValue)) {
+            newText = updatedValue.map(item => {
+              if (typeof item === 'string') return item;
+              if (typeof item === 'object' && item.text !== undefined) return item.text;
+              return JSON.stringify(item);
+            }).join(', ');
+          } else {
+            newText = JSON.stringify(updatedValue, null, 2);
           }
-          
-          // Show success message
-          setSuccessMessage('保存成功');
-          setShowSuccess(true);
-          setSuccessOpacity(1);
-          
-          // Auto-hide success message after 1 second with fade effect
-          setTimeout(() => {
-            setSuccessOpacity(0);
-            setTimeout(() => {
-              setShowSuccess(false);
-            }, 500); // Wait for fade animation to complete
-          }, 500); // Start fading after 0.5 seconds
-        } catch (error) {
-          console.error('Failed to update cell:', error);
-          setErrorMessage('保存失败，文本与单元格类型不匹配');
-          setShowError(true);
-          setErrorOpacity(1);
-          
-          // Auto-hide error message after 1 second with fade effect
-          setTimeout(() => {
-            setErrorOpacity(0);
-            setTimeout(() => {
-              setShowError(false);
-            }, 500); // Wait for fade animation to complete
-          }, 500); // Start fading after 0.5 seconds
+        } else {
+          newText = String(updatedValue);
         }
+        setText(newText);
       }
     } catch (error) {
-      console.error('Failed to update cell:', error);
-      setErrorMessage('保存失败，文本与单元格类型不匹配');
-      setShowError(true);
-      setErrorOpacity(1);
-      
-      // Auto-hide error message after 1 second with fade effect
-      setTimeout(() => {
-        setErrorOpacity(0);
-        setTimeout(() => {
-          setShowError(false);
-        }, 500); // Wait for fade animation to complete
-      }, 500); // Start fading after 0.5 seconds
+      setTranslationError('保存失败，请重试');
     }
   };
 
@@ -425,128 +410,23 @@ function App() {
   };
 
   // Function to convert plain text with markup to Unity rich text
-  const convertToUnityRichText = (plainText: string): string => {
-    let result = '';
-    let currentIndex = 0;
-    const stack: Array<{tag: string, startIndex: number, type: string}> = [];
-    const text = plainText;
-
-    // Check if text contains Arabic characters
-    const containsArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
-    
-    // Add RTL support if Arabic is detected
-    if (containsArabic) {
-      result += '<div dir="rtl" style="text-align: right;">';
-    }
-
-    while (currentIndex < text.length) {
-      // Find the next tag
-      const nextTagStart = text.indexOf('<', currentIndex);
-      
-      if (nextTagStart === -1) {
-        // No more tags, add the remaining text
-        result += text.slice(currentIndex);
-        break;
-      }
-
-      // Add text before the tag
-      result += text.slice(currentIndex, nextTagStart);
-
-      // Find the end of the tag
-      const tagEnd = text.indexOf('>', nextTagStart);
-      if (tagEnd === -1) {
-        // Unclosed tag syntax, treat as text
-        result += text.slice(nextTagStart);
-        break;
-      }
-
-      const fullTag = text.slice(nextTagStart, tagEnd + 1);
-      const isClosingTag = fullTag.startsWith('</');
-
-      if (isClosingTag) {
-        const tagName = fullTag.slice(2, -1);
-        // Find matching opening tag in stack
-        const stackIndex = stack.findIndex(item => item.tag === tagName);
-        if (stackIndex !== -1) {
-          // Close all tags up to and including this one
-          for (let i = stack.length - 1; i >= stackIndex; i--) {
-            const item = stack[i];
-            if (item.type === 'color') {
-              result += '</span>';
-            } else if (item.type === 'size') {
-              result += '</span>';
-            } else {
-              result += `</${item.tag}>`;
-            }
-            stack.pop();
-          }
-        }
-      } else {
-        // Opening tag
-        let tagContent = fullTag.slice(1, -1);
-        if (tagContent.startsWith('color=')) {
-          const color = tagContent.slice(6);
-          result += `<span style="color: ${color}">`;
-          stack.push({tag: 'color', startIndex: result.length, type: 'color'});
-        } else if (tagContent.startsWith('size=')) {
-          const size = tagContent.slice(5);
-          result += `<span style="font-size: ${size}px">`;
-          stack.push({tag: 'size', startIndex: result.length, type: 'size'});
-        } else {
-          const tag = tagContent;
-          const htmlTag = tag === 'b' ? 'strong' :
-                         tag === 'i' ? 'em' :
-                         tag === 'u' ? 'u' :
-                         tag === 's' ? 's' :
-                         tag === 'sup' ? 'sup' :
-                         tag === 'sub' ? 'sub' : tag;
-          result += `<${htmlTag}>`;
-          stack.push({tag: tag, startIndex: result.length, type: 'basic'});
-        }
-      }
-
-      currentIndex = tagEnd + 1;
-    }
-
-    // Close any remaining open tags
-    for (let i = stack.length - 1; i >= 0; i--) {
-      const item = stack[i];
-      if (item.type === 'color' || item.type === 'size') {
-        result += '</span>';
-      } else {
-        const htmlTag = item.tag === 'b' ? 'strong' :
-                       item.tag === 'i' ? 'em' :
-                       item.tag === 'u' ? 'u' :
-                       item.tag === 's' ? 's' :
-                       item.tag === 'sup' ? 'sup' :
-                       item.tag === 'sub' ? 'sub' : item.tag;
-        result += `</${htmlTag}>`;
-      }
-    }
-
-    // Close RTL div if Arabic was detected
-    if (containsArabic) {
-      result += '</div>';
-    }
-
-    // Process special characters
-    result = result
-      .replace(/\\u00AD/g, '&shy;')
-      .replace(/\\u00A0/g, '&nbsp;')
-      .replace(/<space=([^>]+)>/g, '<span style="margin-right: $1"></span>');
-
-    // Handle text segmentation if enabled
-    if (enableSegmentation) {
-      const segments = result.split('|').filter(segment => segment.trim() !== '');
-      if (segments.length > 1) {
-        result = segments.map(segment => 
-          `<div style="margin-bottom: 8px;">• ${segment.trim()}</div>`
-        ).join('');
-      }
-    }
-
-    return result;
-  };
+  function convertToUnityRichText(text: string): string {
+    // 处理 <b> <i> <u> <s> <sup> <sub>
+    let html = text
+      .replace(/<b>(.*?)<\/b>/g, '<strong>$1</strong>')
+      .replace(/<i>(.*?)<\/i>/g, '<em>$1</em>')
+      .replace(/<u>(.*?)<\/u>/g, '<u>$1</u>')
+      .replace(/<s>(.*?)<\/s>/g, '<s>$1</s>')
+      .replace(/<sup>(.*?)<\/sup>/g, '<sup>$1</sup>')
+      .replace(/<sub>(.*?)<\/sub>/g, '<sub>$1</sub>');
+    // 处理 <color=xxx>
+    html = html.replace(/<color=([^>]+)>(.*?)<\/color>/g, '<span style="color:$1">$2</span>');
+    // 处理 <size=xx>
+    html = html.replace(/<size=([^>]+)>(.*?)<\/size>/g, '<span style="font-size:$1px">$2</span>');
+    // 处理换行
+    html = html.replace(/\n/g, '<br>');
+    return html;
+  }
 
   // Function to reset preview background color to default
   const resetPreviewBgColor = () => {
@@ -575,6 +455,115 @@ function App() {
     setTimeout(() => {
       setShowSuccess(false);
     }, 500); // Wait for fade animation to complete
+  };
+
+  // 智能分段：只翻译可见文本，不翻译标记
+  function splitTextWithTags(text: string) {
+    const regex = /(<[^>]+>|\{[^}]+\}|\[[^\]]+\])/g;
+    let result: { type: 'text' | 'tag', value: string }[] = [];
+    let lastIndex = 0;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        result.push({ type: 'text', value: text.slice(lastIndex, match.index) });
+      }
+      result.push({ type: 'tag', value: match[0] });
+      lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < text.length) {
+      result.push({ type: 'text', value: text.slice(lastIndex) });
+    }
+    return result;
+  }
+
+  // 并发翻译所有语言
+  const translateText = async () => {
+    if (!text.trim()) {
+      setTranslationError('请输入要翻译的文本');
+      return;
+    }
+    setIsTranslating(true);
+    setTranslationError('');
+    setAllTranslatedTexts({});
+    try {
+      const segments = splitTextWithTags(text);
+      // 并发请求所有语言
+      const results = await Promise.all(
+        supportedLanguages.map(async (lang) => {
+          const translatedSegments = await Promise.all(
+            segments.map(async seg => {
+              if (seg.type === 'text' && seg.value.trim()) {
+                const response = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${lang.code}&dt=t&q=${encodeURIComponent(seg.value)}`);
+                if (!response.ok) throw new Error('翻译服务暂时不可用');
+                const data = await response.json();
+                let translated = '';
+                if (data && data[0]) {
+                  data[0].forEach((item: any) => {
+                    if (item[0]) translated += item[0];
+                  });
+                }
+                return translated;
+              } else {
+                return seg.value;
+              }
+            })
+          );
+          return { lang: lang.code, text: translatedSegments.join('') };
+        })
+      );
+      const allTexts: { [lang: string]: string } = {};
+      results.forEach(r => { allTexts[r.lang] = r.text; });
+      setAllTranslatedTexts(allTexts);
+      // 默认显示当前 targetLanguage
+      setActiveLanguage(targetLanguage);
+      setTranslatedText(allTexts[targetLanguage] || '');
+    } catch (error) {
+      console.error('翻译失败:', error);
+      setTranslationError('翻译失败，请稍后再试');
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  // 切换语言按钮
+  const handleLanguageButtonClick = (lang: string) => {
+    setActiveLanguage(lang);
+    setTranslatedText(allTranslatedTexts[lang] || '');
+  };
+
+  // 保存译文到选中单元格
+  const handleSaveTranslation = async () => {
+    if (!hasSelection) {
+      setTranslationError('请先选择一个单元格');
+      return;
+    }
+    try {
+      await updateSelectedCell(translatedText);
+      setShowSuccess(true);
+      setSuccessMessage('译文已保存到单元格');
+    } catch (e) {
+      setTranslationError('保存失败，请重试');
+    }
+  };
+
+  // 打开翻译对话框时自动执行翻译
+  const handleOpenTranslationDialog = () => {
+    setShowTranslationDialog(true);
+    setTimeout(() => {
+      translateText();
+    }, 0);
+  };
+
+  // 关闭翻译对话框
+  const handleCloseTranslationDialog = () => {
+    setShowTranslationDialog(false);
+    setTranslatedText('');
+    setTranslationError('');
+  };
+
+  // 处理语言选择变化
+  const handleLanguageChange = (event: any) => {
+    setTargetLanguage(event.target.value);
   };
 
   return (
@@ -626,16 +615,27 @@ function App() {
                 </ToggleButton>
               </ToggleButtonGroup>
               
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={enableSegmentation}
-                    onChange={(e) => setEnableSegmentation(e.target.checked)}
-                    color="primary"
-                  />
-                }
-                label="启用分段显示"
-              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={enableSegmentation}
+                      onChange={(e) => setEnableSegmentation(e.target.checked)}
+                      color="primary"
+                    />
+                  }
+                  label="启用分段显示"
+                />
+                
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<TranslateIcon />}
+                  onClick={handleOpenTranslationDialog}
+                >
+                  翻译
+                </Button>
+              </Box>
             </Box>
 
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -814,7 +814,7 @@ function App() {
               <Button
                 variant="contained"
                 color="primary"
-                onClick={updateSelectedCell}
+                onClick={handleSaveTranslation}
                 disabled={!isConnected || !hasSelection}
                 startIcon={<SaveIcon />}
                 sx={{
@@ -877,6 +877,7 @@ function App() {
               backgroundColor: previewBgColor,
               padding: 2,
               borderRadius: 1,
+              fontWeight: 'normal',
               '& strong': { fontWeight: 'bold' },
               '& em': { fontStyle: 'italic' },
               '& u': { textDecoration: 'underline' },
@@ -967,6 +968,117 @@ function App() {
             {successMessage}
           </Alert>
         </Box>
+      )}
+
+      {/* 翻译对话框 */}
+      <Dialog 
+        open={showTranslationDialog} 
+        onClose={handleCloseTranslationDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>文本翻译</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2, mb: 2 }}>
+            {/* 语言按钮组 */}
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+              {supportedLanguages.map((lang) => (
+                <Button
+                  key={lang.code}
+                  variant={activeLanguage === lang.code ? 'contained' : 'outlined'}
+                  size="small"
+                  onClick={() => handleLanguageButtonClick(lang.code)}
+                  disabled={isTranslating || !allTranslatedTexts[lang.code]}
+                >
+                  {lang.name}
+                </Button>
+              ))}
+            </Box>
+            <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="subtitle2" gutterBottom>原文</Typography>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={6}
+                  value={text}
+                  variant="outlined"
+                  InputProps={{ readOnly: true }}
+                />
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="subtitle2" gutterBottom>译文</Typography>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={6}
+                  value={translatedText}
+                  variant="outlined"
+                  onChange={e => setTranslatedText(e.target.value)}
+                  id="translated-text-field"
+                />
+                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={handleSaveTranslation}
+                    disabled={!translatedText || !hasSelection}
+                  >
+                    保存
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setTranslatedText(translatedText.toUpperCase())}
+                    disabled={!translatedText}
+                  >
+                    全部大写
+                  </Button>
+                </Box>
+              </Box>
+            </Box>
+            {translationError && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {translationError}
+              </Alert>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseTranslationDialog}>关闭</Button>
+          <Button 
+            onClick={translateText} 
+            variant="contained" 
+            disabled={isTranslating || !text.trim()}
+            startIcon={isTranslating ? <CircularProgress size={20} /> : null}
+          >
+            {isTranslating ? '翻译中...' : '翻译'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {/* 复制成功提示 */}
+      <Snackbar
+        open={showCopySnackbar}
+        autoHideDuration={1500}
+        onClose={() => setShowCopySnackbar(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="success" sx={{ width: '100%' }}>
+          翻译内容已复制到剪贴板！
+        </Alert>
+      </Snackbar>
+      {/* 复制失败提示 */}
+      {translationError && (
+        <Snackbar
+          open={!!translationError}
+          autoHideDuration={2000}
+          onClose={() => setTranslationError('')}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert severity="error" sx={{ width: '100%' }}>
+            {translationError}
+          </Alert>
+        </Snackbar>
       )}
     </Container>
   );
