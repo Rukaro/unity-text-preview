@@ -528,10 +528,11 @@ function App() {
     }
     try {
       await updateSelectedCell(translatedText);
-      setShowSuccess(true);
       setSuccessMessage('译文已保存到单元格');
+      setShowSuccess(true);
     } catch (e) {
       setTranslationError('保存失败，请重试');
+      setShowSuccess(false); // 失败时确保不弹出成功提示
     }
   };
 
@@ -892,21 +893,11 @@ function App() {
 
       {/* Custom success alert that appears in the middle of the screen */}
       {showSuccess && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            opacity: successOpacity,
-            transition: 'opacity 0.5s ease',
-            pointerEvents: 'none',
-          }}
+        <Snackbar
+          open={showSuccess}
+          autoHideDuration={2000}
+          onClose={() => setShowSuccess(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         >
           <Alert 
             severity="success" 
@@ -918,7 +909,7 @@ function App() {
           >
             {successMessage}
           </Alert>
-        </Box>
+        </Snackbar>
       )}
 
       {/* 翻译对话框 */}
