@@ -225,7 +225,6 @@ function App() {
   const [text, setText] = useState('');
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const textFieldRef = useRef<HTMLTextAreaElement>(null);
   const [previewBgColor, setPreviewBgColor] = useState('#0E1F34');
   const defaultBgColor = '#0E1F34';
   const [hasSelection, setHasSelection] = useState(false);
@@ -469,11 +468,6 @@ function App() {
       textarea.focus();
       textarea.setSelectionRange(start + symbol.length, start + symbol.length);
     }, 0);
-  };
-
-  // Function to handle text changes
-  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setText(e.target.value);
   };
 
   // Function to convert plain text with markup to Unity rich text
