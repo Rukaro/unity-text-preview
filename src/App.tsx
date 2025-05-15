@@ -151,7 +151,6 @@ function App() {
   const [enableSegmentation, setEnableSegmentation] = useState(true);
   const [successMessage, setSuccessMessage] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
-  const [successOpacity, setSuccessOpacity] = useState(1);
   const [showTranslationDialog, setShowTranslationDialog] = useState(false);
   const [targetLanguage] = useState('en');
   const [translatedText, setTranslatedText] = useState('');
@@ -440,10 +439,7 @@ function App() {
   // Function to handle success alert close
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleSuccessClose = () => {
-    setSuccessOpacity(0);
-    setTimeout(() => {
-      setShowSuccess(false);
-    }, 500); // Wait for fade animation to complete
+    setShowSuccess(false);
   };
 
   // 智能分段：只翻译可见文本，不翻译标记
