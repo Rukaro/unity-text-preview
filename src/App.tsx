@@ -446,6 +446,15 @@ function App() {
     html = html.replace(/<size=([^>]+)>(.*?)<\/size>/g, '<span style="font-size:$1px">$2</span>');
     // 处理换行
     html = html.replace(/\n/g, '<br>');
+    // 分段显示
+    if (enableSegmentation) {
+      const segments = html.split('|').filter(segment => segment.trim() !== '');
+      if (segments.length > 1) {
+        html = segments.map(segment =>
+          `<div style="margin-bottom: 8px;">• ${segment.trim()}</div>`
+        ).join('');
+      }
+    }
     return html;
   }
 
