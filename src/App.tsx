@@ -140,6 +140,30 @@ const supportedLanguages = [
   { code: 'tr', name: '土耳其语' },
 ];
 
+// 更新日志（按时间倒序排列）
+const updateLogs = [
+  {
+    version: 'v1.2.1',
+    date: '2025-05-15',
+    content: '增加"全部大写"功能。',
+  },
+  {
+    version: 'v1.2.0',
+    date: '2025-05-14',
+    content: '新增批量翻译功能。',
+  },
+  {
+    version: 'v1.1.0',
+    date: '2025-04-14',
+    content: '允许编辑单元格内容。',
+  },
+  {
+    version: 'v1.0.0',
+    date: '2025-03-31',
+    content: '仅支持预览的基础版本。',
+  },
+];
+
 function App() {
   const [text, setText] = useState('');
   const [showCopyAlert, setShowCopyAlert] = useState(false);
@@ -159,6 +183,7 @@ function App() {
   const [allTranslatedTexts, setAllTranslatedTexts] = useState<{ [lang: string]: string }>({});
   const [activeLanguage, setActiveLanguage] = useState(targetLanguage);
   const [showCopySnackbar, setShowCopySnackbar] = useState(false);
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
 
   // Function to connect to Feishu Base
   const connectToBase = async () => {
@@ -547,12 +572,29 @@ function App() {
     setTranslationError('');
   };
 
+  // 自动弹出最近更新弹窗（每次有新日志时每台设备首次打开自动弹出）
+  useEffect(() => {
+    const latestVersion = updateLogs[0]?.version;
+    if (!latestVersion) return;
+    const storageKey = 'unity-text-preview-last-shown-update';
+    const lastShown = localStorage.getItem(storageKey);
+    if (lastShown !== latestVersion) {
+      setShowUpdateDialog(true);
+      localStorage.setItem(storageKey, latestVersion);
+    }
+  }, []);
+
   return (
     <Container maxWidth="md">
       <Box sx={{ my: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Unity Text Editor
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Unity Text Editor
+          </Typography>
+          <Button variant="outlined" onClick={() => setShowUpdateDialog(true)}>
+            最近更新
+          </Button>
+        </Box>
         
         <EditorContainer>
           <Box sx={{ mb: 2 }}>
@@ -1018,6 +1060,21 @@ function App() {
           </Alert>
         </Snackbar>
       )}
+      {/* 最近更新弹窗 */}
+      <Dialog open={showUpdateDialog} onClose={() => setShowUpdateDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>最近更新</DialogTitle>
+        <DialogContent>
+          {updateLogs.map((log, idx) => (
+            <Box key={log.version} sx={{ mb: 2, borderBottom: idx < updateLogs.length - 1 ? '1px solid #eee' : 'none', pb: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>{log.version} <Typography component="span" variant="body2" sx={{ color: '#888', ml: 1 }}>{log.date}</Typography></Typography>
+              <Typography variant="body2" sx={{ mt: 0.5 }}>{log.content}</Typography>
+            </Box>
+          ))}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowUpdateDialog(false)}>关闭</Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
