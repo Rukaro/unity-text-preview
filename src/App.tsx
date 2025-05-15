@@ -22,6 +22,8 @@ import {
   DialogActions,
   CircularProgress,
 } from '@mui/material';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined';
 import FormatStrikethroughIcon from '@mui/icons-material/FormatStrikethrough';
@@ -33,6 +35,10 @@ import SaveIcon from '@mui/icons-material/Save';
 import TranslateIcon from '@mui/icons-material/Translate';
 import { styled } from '@mui/material/styles';
 import { bitable } from '@lark-base-open/js-sdk';
+import Editor from 'react-simple-code-editor';
+import Prism from 'prismjs';
+import 'prismjs/themes/prism.css';
+import './prism-unityrt.css';
 
 // Add font face declaration
 const fontFaceStyle = document.createElement('style');
@@ -143,6 +149,11 @@ const supportedLanguages = [
 // 更新日志（按时间倒序排列）
 const updateLogs = [
   {
+    version: 'v1.2.2',
+    date: '2025-05-15',
+    content: '增加代码高亮功能。',
+  },
+  {
     version: 'v1.2.1',
     date: '2025-05-15',
     content: '增加"全部大写"功能。',
@@ -163,6 +174,52 @@ const updateLogs = [
     content: '仅支持预览的基础版本。',
   },
 ];
+
+// 支持自定义标签高亮
+Prism.languages.unityrt = {
+  'unicode': {
+    pattern: /\\u[0-9a-fA-F]{4}/g
+  },
+  'tag': {
+    pattern: /<\/?[a-z]+(?:=[^>]+)?>/gi,
+    inside: {
+      'attr-value': /=[^>]+/,
+      'punctuation': /[<>/]/
+    }
+  },
+  'string': /".*?"|'.*?'/,
+  'number': /\b\d+(?:\.\d+)?%?\b/,
+  'operator': /[=]/,
+  'text': /[^<>]+/
+};
+
+// 实时高亮输入框组件
+const UnityRichTextEditor = ({ value, onChange, disabled, placeholder, style, ...props }: any) => (
+  <Box sx={{ width: '100%' }}>
+    <Editor
+      value={value}
+      onValueChange={onChange}
+      highlight={code => Prism.highlight(code, Prism.languages.unityrt, 'unityrt')}
+      padding={12}
+      textareaId="unity-rich-text-editor"
+      placeholder={placeholder}
+      style={{
+        fontFamily: 'Alibaba PuHuiTi, sans-serif',
+        fontSize: 16,
+        minHeight: 120,
+        background: '#f5f6fa',
+        color: '#222',
+        borderRadius: 8,
+        outline: 'none',
+        border: '1px solid #ccc',
+        boxShadow: 'none',
+        ...style,
+      }}
+      disabled={disabled}
+      {...props}
+    />
+  </Box>
+);
 
 function App() {
   const [text, setText] = useState('');
@@ -376,18 +433,14 @@ function App() {
 
   // Function to insert markup at cursor position or around selection
   const insertMarkup = (openTag: string, closeTag: string) => {
-    if (!textFieldRef.current) return;
-    
-    const textarea = textFieldRef.current;
+    const textarea = document.getElementById('unity-rich-text-editor') as HTMLTextAreaElement | null;
+    if (!textarea) return;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    
     if (start === end) {
       // No selection, just insert the tags at cursor position
       const newText = text.substring(0, start) + openTag + closeTag + text.substring(end);
       setText(newText);
-      
-      // Set cursor position between the tags
       setTimeout(() => {
         textarea.focus();
         textarea.setSelectionRange(start + openTag.length, start + openTag.length);
@@ -397,28 +450,21 @@ function App() {
       const selectedText = text.substring(start, end);
       const newText = text.substring(0, start) + openTag + selectedText + closeTag + text.substring(end);
       setText(newText);
-      
-      // Set cursor position after the closing tag
       setTimeout(() => {
         textarea.focus();
-        textarea.setSelectionRange(start + openTag.length + selectedText.length + closeTag.length, 
-                                  start + openTag.length + selectedText.length + closeTag.length);
+        textarea.setSelectionRange(start + openTag.length, start + openTag.length + selectedText.length);
       }, 0);
     }
   };
 
   // Function to insert a special symbol at cursor position
   const insertSymbol = (symbol: string) => {
-    if (!textFieldRef.current) return;
-    
-    const textarea = textFieldRef.current;
+    const textarea = document.getElementById('unity-rich-text-editor') as HTMLTextAreaElement | null;
+    if (!textarea) return;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    
     const newText = text.substring(0, start) + symbol + text.substring(end);
     setText(newText);
-    
-    // Set cursor position after the inserted symbol
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(start + symbol.length, start + symbol.length);
@@ -823,16 +869,11 @@ function App() {
           </Box>
 
           <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-            <TextField
-              inputRef={textFieldRef}
-              fullWidth
-              multiline
-              rows={6}
+            <UnityRichTextEditor
               value={text}
-              onChange={handleTextChange}
-              variant="outlined"
-              placeholder={hasSelection ? "在此输入文本..." : "选择一个单元格来显示内容"}
+              onChange={setText}
               disabled={!hasSelection}
+              placeholder={hasSelection ? "在此输入文本..." : "选择一个单元格来显示内容"}
             />
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
               <Button
@@ -986,25 +1027,20 @@ function App() {
             <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
               <Box sx={{ flex: 1 }}>
                 <Typography variant="subtitle2" gutterBottom>原文</Typography>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={6}
+                <UnityRichTextEditor
                   value={text}
-                  variant="outlined"
-                  InputProps={{ readOnly: true }}
+                  onChange={setText}
+                  disabled={true}
+                  placeholder="选择一个单元格来显示内容"
                 />
               </Box>
               <Box sx={{ flex: 1 }}>
                 <Typography variant="subtitle2" gutterBottom>译文</Typography>
-                <TextField
-                  fullWidth
-                  multiline
-                  rows={6}
+                <UnityRichTextEditor
                   value={translatedText}
-                  variant="outlined"
-                  onChange={e => setTranslatedText(e.target.value)}
-                  id="translated-text-field"
+                  onChange={setTranslatedText}
+                  disabled={!translatedText}
+                  placeholder="在此输入翻译后的文本..."
                 />
                 <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
                   <Button
