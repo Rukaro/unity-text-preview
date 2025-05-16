@@ -1,3 +1,23 @@
 .token.unicode {
   color: #bbb !important;
+}
+
+.token.curly-param {
+  color: #2979ff !important;
+}
+
+.token.closing-tag {
+  color: #8B0000 !important; /* 暗红色 */
+}
+
+.token.self-closing-tag {
+  color: #006400 !important; /* 暗绿色 */
+}
+
+.token.attr-value {
+  color: #bbb !important;
+}
+
+.token.punctuation {
+  color: inherit !important;
 } 

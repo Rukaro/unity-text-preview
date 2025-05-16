@@ -177,7 +177,19 @@ Prism.languages.unityrt = {
   'unicode': {
     pattern: /\\u[0-9a-fA-F]{4}/g
   },
-  'tag': {
+  'curly-param': {
+    pattern: /\{[^}]+\}/g
+  },
+  'self-closing-tag': {
+    // 只匹配 <br> 和 <space=...>
+    pattern: /<(br|space=[^>]+)>/gi,
+    inside: {
+      'attr-value': /=[^>]+/,
+      'punctuation': /[<>/]/
+    }
+  },
+  'closing-tag': {
+    // 其他需要闭合的标签
     pattern: /<\/?[a-z]+(?:=[^>]+)?>/gi,
     inside: {
       'attr-value': /=[^>]+/,
@@ -393,37 +405,60 @@ function App() {
     try {
       // Get the active table
       const selection = await bitable.base.getSelection();
-      if (selection && selection.recordId && selection.fieldId) {
-        const table = await bitable.base.getActiveTable();
-        const field = await table.getFieldById(selection.fieldId);
-        // 保存 value 到单元格
-        await field.setValue(selection.recordId, value);
-        // 获取最新值同步到界面
-        const updatedValue = await field.getValue(selection.recordId);
-        let newText = '';
-        if (typeof updatedValue === 'string') {
-          newText = updatedValue;
-        } else if (typeof updatedValue === 'object') {
-          if (updatedValue.text !== undefined) {
-            newText = updatedValue.text;
-          } else if (updatedValue.value !== undefined) {
-            newText = updatedValue.value;
-          } else if (Array.isArray(updatedValue)) {
-            newText = updatedValue.map(item => {
-              if (typeof item === 'string') return item;
-              if (typeof item === 'object' && item.text !== undefined) return item.text;
-              return JSON.stringify(item);
-            }).join(', ');
-          } else {
-            newText = JSON.stringify(updatedValue, null, 2);
-          }
-        } else {
-          newText = String(updatedValue);
-        }
-        setText(newText);
+      if (!selection || !selection.recordId || !selection.fieldId) {
+        throw new Error('未选择单元格');
       }
+
+      const table = await bitable.base.getActiveTable();
+      if (!table) {
+        throw new Error('无法获取表格');
+      }
+
+      const field = await table.getFieldById(selection.fieldId);
+      if (!field) {
+        throw new Error('无法获取字段');
+      }
+
+      // 保存 value 到单元格
+      await field.setValue(selection.recordId, value);
+      
+      // 获取最新值同步到界面
+      const updatedValue = await field.getValue(selection.recordId);
+      let newText = '';
+      
+      // 处理 null 或 undefined 的情况
+      if (updatedValue === null || updatedValue === undefined) {
+        newText = '';
+      } else if (typeof updatedValue === 'string') {
+        newText = updatedValue;
+      } else if (typeof updatedValue === 'object') {
+        if (updatedValue.text !== undefined) {
+          newText = updatedValue.text;
+        } else if (updatedValue.value !== undefined) {
+          newText = updatedValue.value;
+        } else if (Array.isArray(updatedValue)) {
+          newText = updatedValue.map((item: any) => {
+            if (item === null || item === undefined) return '';
+            if (typeof item === 'string') return item;
+            if (typeof item === 'object' && item.text !== undefined) return item.text;
+            return JSON.stringify(item);
+          }).join(', ');
+        } else {
+          newText = JSON.stringify(updatedValue, null, 2);
+        }
+      } else {
+        newText = String(updatedValue);
+      }
+      
+      setText(newText);
+      setSuccessMessage('保存成功');
+      setShowSuccess(true);
     } catch (error) {
+      console.error('保存失败:', error);
       setTranslationError('保存失败，请重试');
+      // 保存失败时保持原有文本不变
+      setText(text);
+      throw error; // 重新抛出错误，让调用者知道保存失败
     }
   };
 
@@ -587,20 +622,31 @@ function App() {
     setTranslatedText(allTranslatedTexts[lang] || '');
   };
 
-  // 保存译文到选中单元格
-  const handleSaveTranslation = async () => {
+  // 通用的保存函数
+  const handleSave = async (valueToSave: string) => {
     if (!hasSelection) {
       setTranslationError('请先选择一个单元格');
       return;
     }
     try {
-      await updateSelectedCell(translatedText);
-      setSuccessMessage('译文已保存到单元格');
+      // 如果不是翻译保存，则将换行符替换为 <br>
+      const textToSave = valueToSave === translatedText ? valueToSave : valueToSave.replace(/\n/g, '<br>');
+      await updateSelectedCell(textToSave);
+      setSuccessMessage('保存成功');
       setShowSuccess(true);
     } catch (e) {
       setTranslationError('保存失败，请重试');
-      setShowSuccess(false); // 失败时确保不弹出成功提示
+      setShowSuccess(false);
     }
+  };
+
+  // 保存译文到选中单元格
+  const handleSaveTranslation = async () => {
+    if (!translatedText) {
+      setTranslationError('没有可保存的译文');
+      return;
+    }
+    await handleSave(translatedText);
   };
 
   // 打开翻译对话框时自动执行翻译
@@ -878,7 +924,7 @@ function App() {
               <Button
                 variant="contained"
                 color="primary"
-                onClick={handleSaveTranslation}
+                onClick={() => handleSave(text)}
                 disabled={!isConnected || !hasSelection}
                 startIcon={<SaveIcon />}
                 sx={{
