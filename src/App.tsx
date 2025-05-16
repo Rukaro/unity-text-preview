@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Container, 
   Paper, 
@@ -13,7 +13,6 @@ import {
   Button,
   Snackbar,
   Alert,
-  TextField,
   Switch,
   FormControlLabel,
   Dialog,
@@ -22,8 +21,6 @@ import {
   DialogActions,
   CircularProgress,
 } from '@mui/material';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined';
 import FormatStrikethroughIcon from '@mui/icons-material/FormatStrikethrough';
