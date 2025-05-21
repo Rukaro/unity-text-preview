@@ -36,6 +36,7 @@ import Editor from 'react-simple-code-editor';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism.css';
 import './prism-unityrt.css';
+import { SelectChangeEvent } from '@mui/material/Select';
 
 // Add font face declaration
 const fontFaceStyle = document.createElement('style');
@@ -70,6 +71,9 @@ const PreviewContainer = styled(Paper)(({ theme }) => ({
   fontFamily: '"Alibaba PuHuiTi", sans-serif',
   whiteSpace: 'pre-wrap',
   wordBreak: 'break-all',
+  '& [style*="font-size"]': {
+    fontSize: 'inherit',
+  },
 }));
 
 // Predefined color categories
@@ -145,6 +149,11 @@ const supportedLanguages = [
 
 // 更新日志（按时间倒序排列）
 const updateLogs = [
+  {
+    version: 'v1.2.3',
+    date: '2025-05-21',
+    content: '修复了字号没有按照相对大小添加和预览的bug。',
+  },
   {
     version: 'v1.2.2',
     date: '2025-05-15',
@@ -249,6 +258,7 @@ function App() {
   const [activeLanguage, setActiveLanguage] = useState(targetLanguage);
   const [showCopySnackbar, setShowCopySnackbar] = useState(false);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
+  const [fontSize, setFontSize] = useState('');
 
   // Function to connect to Feishu Base
   const connectToBase = async () => {
@@ -514,8 +524,8 @@ function App() {
       .replace(/<sub>(.*?)<\/sub>/g, '<sub>$1</sub>');
     // 处理 <color=xxx>
     html = html.replace(/<color=([^>]+)>(.*?)<\/color>/g, '<span style="color:$1">$2</span>');
-    // 处理 <size=xx>
-    html = html.replace(/<size=([^>]+)>(.*?)<\/size>/g, '<span style="font-size:$1px">$2</span>');
+    // 处理 <size=xx%>
+    html = html.replace(/<size=([^>]+)>(.*?)<\/size>/g, '<span style="font-size:$1">$2</span>');
     // 处理换行
     html = html.replace(/\n/g, '<br>');
     // 分段显示
@@ -676,6 +686,20 @@ function App() {
     }
   }, []);
 
+  // 修改字号调整函数
+  const handleFontSizeChange = (event: SelectChangeEvent<string>) => {
+    const newSize = event.target.value;
+    if (newSize === '') {
+      setFontSize('');
+      return;
+    }
+    const sizeValue = parseFloat(newSize);
+    if (!isNaN(sizeValue) && sizeValue > 0) {
+      setFontSize(newSize);
+      insertMarkup(`<size=${newSize}>`, '</size>');
+    }
+  };
+
   return (
     <Container maxWidth="md">
       <Box sx={{ my: 4 }}>
@@ -757,19 +781,17 @@ function App() {
               <FormControl size="small" sx={{ minWidth: 120 }}>
                 <InputLabel>字号</InputLabel>
                 <Select
-                  value={1}
+                  value={fontSize}
                   label="字号"
-                  onChange={(e) => {
-                    const size = Number(e.target.value);
-                    insertMarkup(`<size=${size}>`, '</size>');
-                  }}
+                  onChange={handleFontSizeChange}
                 >
-                  <MenuItem value={0.5}>50%</MenuItem>
-                  <MenuItem value={0.75}>75%</MenuItem>
-                  <MenuItem value={1}>100%</MenuItem>
-                  <MenuItem value={1.25}>125%</MenuItem>
-                  <MenuItem value={1.5}>150%</MenuItem>
-                  <MenuItem value={2}>200%</MenuItem>
+                  <MenuItem value="">请选择字号</MenuItem>
+                  <MenuItem value="50%">50%</MenuItem>
+                  <MenuItem value="75%">75%</MenuItem>
+                  <MenuItem value="100%">100%</MenuItem>
+                  <MenuItem value="125%">125%</MenuItem>
+                  <MenuItem value="150%">150%</MenuItem>
+                  <MenuItem value="200%">200%</MenuItem>
                 </Select>
               </FormControl>
 
