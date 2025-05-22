@@ -258,7 +258,6 @@ function App() {
   const [activeLanguage, setActiveLanguage] = useState(targetLanguage);
   const [showCopySnackbar, setShowCopySnackbar] = useState(false);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
-  const [fontSize, setFontSize] = useState('');
 
   // Function to connect to Feishu Base
   const connectToBase = async () => {
@@ -690,12 +689,10 @@ function App() {
   const handleFontSizeChange = (event: SelectChangeEvent<string>) => {
     const newSize = event.target.value;
     if (newSize === '') {
-      setFontSize('');
       return;
     }
     const sizeValue = parseFloat(newSize);
     if (!isNaN(sizeValue) && sizeValue > 0) {
-      setFontSize(newSize);
       insertMarkup(`<size=${newSize}>`, '</size>');
     }
   };
