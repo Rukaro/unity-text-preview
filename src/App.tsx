@@ -781,7 +781,7 @@ function App() {
               <FormControl size="small" sx={{ minWidth: 120 }}>
                 <InputLabel>字号</InputLabel>
                 <Select
-                  value={fontSize}
+                  value=""
                   label="字号"
                   onChange={handleFontSizeChange}
                 >
