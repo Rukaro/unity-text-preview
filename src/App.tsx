@@ -224,7 +224,7 @@ Prism.languages.unityrt = {
 
 // 实时高亮输入框组件
 const highlightWithBold = (code: string) => {
-  // 用栈处理嵌套 <color=...> 标签加粗，只加粗内容不加粗标签本身
+  // 用栈处理嵌套 <color=...> 标签高亮，标签和内容都加 token-bold（用占位符实现）
   let result = '';
   let i = 0;
   const len = code.length;
@@ -233,7 +233,7 @@ const highlightWithBold = (code: string) => {
     // 匹配 <color=...>
     const open = code.slice(i).match(/^<color=[^>]+>/i);
     if (open) {
-      result += open[0];
+      result += '[[[TAG]]]' + open[0] + '[[[/TAG]]]';
       stack.push(i);
       i += open[0].length;
       continue;
@@ -241,7 +241,7 @@ const highlightWithBold = (code: string) => {
     // 匹配 </color>
     const close = code.slice(i).match(/^<\/color>/i);
     if (close) {
-      result += close[0];
+      result += '[[[TAG]]]' + close[0] + '[[[/TAG]]]';
       stack.pop();
       i += close[0].length;
       continue;
@@ -253,10 +253,9 @@ const highlightWithBold = (code: string) => {
       i += tag[0].length;
       continue;
     }
-    // 在 <color> 区间内的内容加粗
+    // 在 <color> 区间内的内容加高亮
     let content = '';
     while (i < len) {
-      // 遇到下一个标签就 break
       if (code[i] === '<') break;
       content += code[i];
       i++;
@@ -269,7 +268,11 @@ const highlightWithBold = (code: string) => {
   }
   // Prism 高亮
   let html = Prism.highlight(result, Prism.languages.unityrt, 'unityrt');
-  // 再把占位符替换为高亮 span
+  // 替换占位符为高亮 span
+  html = html.replace(
+    /\[\[\[TAG\]\]\]([\s\S]*?)\[\[\[\/TAG\]\]\]/g,
+    '<span class="token-bold">$1</span>'
+  );
   html = html.replace(
     /\[\[\[BOLD\]\]\]([\s\S]*?)\[\[\[\/BOLD\]\]\]/g,
     '<span class="token-bold">$1</span>'

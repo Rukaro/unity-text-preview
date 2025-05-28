@@ -37,9 +37,6 @@
   border: 1px dashed #ff0000 !important;
 }
 
-.token-bold {
-  font-weight: normal !important;
-  color: inherit !important;
-  background-color: #ffeaea !important;
-  border-radius: 2px !important;
+.token-bold, .token.tag, .token-bold .token.tag {
+  background-color: rgba(255, 23, 68, 0.10) !important;
 } 
