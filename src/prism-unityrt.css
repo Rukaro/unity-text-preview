@@ -6,8 +6,8 @@
   color: #2979ff !important;
 }
 
-.token.closing-tag {
-  color: #8B0000 !important; /* 暗红色 */
+.token.tag {
+  color: #ff1744 !important; /* 亮红色 */
 }
 
 .token.self-closing-tag {
@@ -20,4 +20,26 @@
 
 .token.punctuation {
   color: inherit !important;
+}
+
+/* 标签内容的样式 */
+.token.tag-content .content {
+  font-weight: bold !important;
+  color: #2c3e50 !important;
+  background-color: rgba(44, 62, 80, 0.1) !important;
+  padding: 0 2px !important;
+  border-radius: 2px !important;
+}
+
+/* 未闭合标签的内容样式 */
+.token.tag-content:not(:has(.tag)) .content {
+  background-color: rgba(255, 0, 0, 0.1) !important;
+  border: 1px dashed #ff0000 !important;
+}
+
+.token-bold {
+  font-weight: normal !important;
+  color: inherit !important;
+  background-color: #ffeaea !important;
+  border-radius: 2px !important;
 } 

@@ -197,12 +197,23 @@ Prism.languages.unityrt = {
       'punctuation': /[<>/]/
     }
   },
-  'closing-tag': {
-    // 其他需要闭合的标签
-    pattern: /<\/?[a-z]+(?:=[^>]+)?>/gi,
+  'tag': {
+    // 匹配开始标签
+    pattern: /<[^>]+>/g,
     inside: {
       'attr-value': /=[^>]+/,
       'punctuation': /[<>/]/
+    }
+  },
+  'tag-content': {
+    // 匹配标签之间的内容
+    pattern: /<[^>]+>([^<]*)<\/[^>]+>/g,
+    inside: {
+      'tag': /<\/?[^>]+>/,
+      'content': {
+        pattern: /[^<>]+/,
+        alias: 'bold'
+      }
     }
   },
   'string': /".*?"|'.*?'/,
@@ -212,12 +223,66 @@ Prism.languages.unityrt = {
 };
 
 // 实时高亮输入框组件
+const highlightWithBold = (code: string) => {
+  // 用栈处理嵌套 <color=...> 标签加粗，只加粗内容不加粗标签本身
+  let result = '';
+  let i = 0;
+  const len = code.length;
+  const stack: number[] = [];
+  while (i < len) {
+    // 匹配 <color=...>
+    const open = code.slice(i).match(/^<color=[^>]+>/i);
+    if (open) {
+      result += open[0];
+      stack.push(i);
+      i += open[0].length;
+      continue;
+    }
+    // 匹配 </color>
+    const close = code.slice(i).match(/^<\/color>/i);
+    if (close) {
+      result += close[0];
+      stack.pop();
+      i += close[0].length;
+      continue;
+    }
+    // 匹配其它标签（如 <b>、<u> 等）
+    const tag = code.slice(i).match(/^<[^>]+>/i);
+    if (tag) {
+      result += tag[0];
+      i += tag[0].length;
+      continue;
+    }
+    // 在 <color> 区间内的内容加粗
+    let content = '';
+    while (i < len) {
+      // 遇到下一个标签就 break
+      if (code[i] === '<') break;
+      content += code[i];
+      i++;
+    }
+    if (stack.length > 0 && content) {
+      result += '[[[BOLD]]]' + content + '[[[/BOLD]]]';
+    } else {
+      result += content;
+    }
+  }
+  // Prism 高亮
+  let html = Prism.highlight(result, Prism.languages.unityrt, 'unityrt');
+  // 再把占位符替换为高亮 span
+  html = html.replace(
+    /\[\[\[BOLD\]\]\]([\s\S]*?)\[\[\[\/BOLD\]\]\]/g,
+    '<span class="token-bold">$1</span>'
+  );
+  return html;
+};
+
 const UnityRichTextEditor = ({ value, onChange, disabled, placeholder, style, ...props }: any) => (
   <Box sx={{ width: '100%' }}>
     <Editor
       value={value}
       onValueChange={onChange}
-      highlight={code => Prism.highlight(code, Prism.languages.unityrt, 'unityrt')}
+      highlight={highlightWithBold}
       padding={12}
       textareaId="unity-rich-text-editor"
       placeholder={placeholder}
