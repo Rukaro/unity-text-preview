@@ -765,6 +765,14 @@ function App() {
     }
   };
 
+  // 清除所有标签和参数，保留纯文本和 {xxx}
+  function stripTagsAndParams(text: string): string {
+    // 去除 <xxx>、</xxx>、[xxx] 等，保留 {xxx}
+    return text
+      .replace(/<[^>]+>/g, '')
+      .replace(/\[[^\]]+\]/g, '');
+  }
+
   return (
     <Container maxWidth="md">
       <Box sx={{ my: 4 }}>
@@ -992,19 +1000,21 @@ function App() {
             </Box>
           </Box>
 
-          <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+          <Box sx={{ display: 'flex', gap: 2, mb: 1, alignItems: 'stretch' }}>
             <UnityRichTextEditor
               value={text}
               onChange={setText}
               disabled={!hasSelection}
               placeholder={hasSelection ? "在此输入文本..." : "选择一个单元格来显示内容"}
+              style={{ minWidth: 0, flex: 1, height: '100%' }}
             />
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
               <Button
                 variant="contained"
                 startIcon={<RestartAltIcon />}
                 onClick={handleReset}
                 disabled={!isConnected}
+                sx={{ minWidth: '100px', flex: 1, minHeight: 0 }}
               >
                 重置
               </Button>
@@ -1014,15 +1024,18 @@ function App() {
                 onClick={() => handleSave(text)}
                 disabled={!isConnected || !hasSelection}
                 startIcon={<SaveIcon />}
-                sx={{
-                  minWidth: '100px',
-                  '&.Mui-disabled': {
-                    backgroundColor: '#ccc',
-                    color: '#666'
-                  }
-                }}
+                sx={{ minWidth: '100px', flex: 1, minHeight: 0, '&.Mui-disabled': { backgroundColor: '#ccc', color: '#666' } }}
               >
                 保存
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                onClick={() => setText(stripTagsAndParams(text))}
+                disabled={!text}
+                sx={{ minWidth: '100px', flex: 1, minHeight: 0, marginTop: '-4px', '&.Mui-disabled': { backgroundColor: '#ccc', color: '#666' } }}
+              >
+                清除样式
               </Button>
             </Box>
           </Box>
