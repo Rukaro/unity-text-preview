@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Container, 
   Paper, 
@@ -20,6 +20,7 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  Tooltip,
 } from '@mui/material';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined';
@@ -30,6 +31,9 @@ import SubscriptIcon from '@mui/icons-material/Subscript';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import SaveIcon from '@mui/icons-material/Save';
 import TranslateIcon from '@mui/icons-material/Translate';
+import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
+import BroomIcon from '@mui/icons-material/AutoFixHigh';
+import TextFieldsIcon from '@mui/icons-material/TextFields';
 import { styled } from '@mui/material/styles';
 import { bitable } from '@lark-base-open/js-sdk';
 import Editor from 'react-simple-code-editor';
@@ -37,6 +41,8 @@ import Prism from 'prismjs';
 import 'prismjs/themes/prism.css';
 import './prism-unityrt.css';
 import { SelectChangeEvent } from '@mui/material/Select';
+import { ChromePicker } from 'react-color';
+import type { ColorResult } from 'react-color';
 
 // Add font face declaration
 const fontFaceStyle = document.createElement('style');
@@ -126,29 +132,16 @@ const getContrastColor = (hexcolor: string): string => {
 // 支持的语言列表
 const supportedLanguages = [
   { code: 'en', name: '英语' },
-  { code: 'ru', name: '俄语' },
-  { code: 'de', name: '德语' },
-  { code: 'fr', name: '法语' },
-  { code: 'it', name: '意大利语' },
-  { code: 'es', name: '西班牙语' },
-  { code: 'pt', name: '葡萄牙语' },
-  { code: 'pl', name: '波兰语' },
-  { code: 'ko', name: '韩语' },
-  { code: 'ja', name: '日语' },
   { code: 'zh-CN', name: '简体中文' },
-  { code: 'zh-TW', name: '繁体中文' },
-  { code: 'id', name: '印度尼西亚语' },
-  { code: 'nl', name: '荷兰语' },
-  { code: 'fi', name: '芬兰语' },
-  { code: 'sv', name: '瑞典语' },
-  { code: 'no', name: '挪威语' },
-  { code: 'da', name: '丹麦语' },
-  { code: 'ar', name: '阿拉伯语' },
-  { code: 'tr', name: '土耳其语' },
 ];
 
 // 更新日志（按时间倒序排列）
 const updateLogs = [
+  {
+    version: 'v1.2.4',
+    date: '2025-05-22',
+    content: '调整了界面布局；新增清除操作；优化了自定义颜色的交互逻辑。',
+  },
   {
     version: 'v1.2.3',
     date: '2025-05-21',
@@ -302,10 +295,45 @@ const UnityRichTextEditor = ({ value, onChange, disabled, placeholder, style, ..
         ...style,
       }}
       disabled={disabled}
+      textareaRef={props.textareaRef}
       {...props}
     />
   </Box>
 );
+
+// 插件使用文档内容
+const useDoc = `
+<div class="use-doc">
+
+  <h2>工具栏功能</h2>
+  <ul>
+    <li>支持对光标选中文本插入<b>加粗</b>、<i>斜体</i>、<u>下划线</u>、<s>删除线</s>、<sup>上标</sup>、<sub>下标</sub>、<color=#xxxxxx>颜色</color>、<size=120%>字号</size>标签</li>
+    <li>支持在光标所在位置插入软连接符、不换行空格、防修建间隙</li>
+    <li>颜色、字号支持自定义选择</li>
+  </ul>
+
+  <h2>操作区功能</h2>
+  <ul>
+    <li>选择单元格后可在输入框中直接编辑内容，支持语法高亮</li>
+    <li>【翻译】查看中英文翻译结果，并支持保存译文到表格</li>
+    <li>【字型】一键大小写转换，包括全大写、全小写、仅词首大写、仅句首大写</li>
+    <li>【保存】将修改同步到多维表格，同时会将换行符转换为 br 标签</li>
+    <li>【重置】将修改回退到多维表格的原始内容</li>
+    <li>【清除】清除所有样式，仅保留纯文本和参数</li>
+  </ul>
+
+  <h2>预览区功能</h2>
+  <ul>
+    <li>默认开启分段显示，用于查看技能描述在局内的显示效果</li>
+    <li>可设定背景颜色，查看不同背景颜色下的显示效果</li>
+  </ul>
+
+  <h2>注意事项：</h2>
+  <ul>
+    <li>修改后务必要点击保存才会同步到多维表格</li>
+  </ul>
+</div>
+`;
 
 function App() {
   const [text, setText] = useState('');
@@ -326,6 +354,11 @@ function App() {
   const [activeLanguage, setActiveLanguage] = useState(targetLanguage);
   const [showCopySnackbar, setShowCopySnackbar] = useState(false);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
+  const [showDocDialog, setShowDocDialog] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [colorPickerAnchor, setColorPickerAnchor] = useState<null | HTMLElement>(null);
+  const [customColor, setCustomColor] = useState('#222222');
+  const editorRef = useRef<HTMLTextAreaElement>(null);
 
   // Function to connect to Feishu Base
   const connectToBase = async () => {
@@ -543,26 +576,33 @@ function App() {
   const insertMarkup = (openTag: string, closeTag: string) => {
     const textarea = document.getElementById('unity-rich-text-editor') as HTMLTextAreaElement | null;
     if (!textarea) return;
+    
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
+    const currentText = textarea.value;
+    
+    let newText;
     if (start === end) {
       // No selection, just insert the tags at cursor position
-      const newText = text.substring(0, start) + openTag + closeTag + text.substring(end);
-      setText(newText);
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start + openTag.length, start + openTag.length);
-      }, 0);
+      newText = currentText.substring(0, start) + openTag + closeTag + currentText.substring(end);
     } else {
       // Selection exists, wrap the selected text with the tags
-      const selectedText = text.substring(start, end);
-      const newText = text.substring(0, start) + openTag + selectedText + closeTag + text.substring(end);
-      setText(newText);
-      setTimeout(() => {
-        textarea.focus();
-        textarea.setSelectionRange(start + openTag.length, start + openTag.length + selectedText.length);
-      }, 0);
+      const selectedText = currentText.substring(start, end);
+      newText = currentText.substring(0, start) + openTag + selectedText + closeTag + currentText.substring(end);
     }
+    
+    // Update the text state
+    setText(newText);
+    
+    // Focus the textarea and set cursor position
+    setTimeout(() => {
+      textarea.focus();
+      if (start === end) {
+        textarea.setSelectionRange(start + openTag.length, start + openTag.length);
+      } else {
+        textarea.setSelectionRange(start + openTag.length, start + openTag.length + (end - start));
+      }
+    }, 0);
   };
 
   // Function to insert a special symbol at cursor position
@@ -571,7 +611,7 @@ function App() {
     if (!textarea) return;
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const newText = text.substring(0, start) + symbol + text.substring(end);
+    const newText = textarea.value.substring(0, start) + symbol + textarea.value.substring(end);
     setText(newText);
     setTimeout(() => {
       textarea.focus();
@@ -773,6 +813,99 @@ function App() {
       .replace(/\[[^\]]+\]/g, '');
   }
 
+  // 编辑区大小写转换函数
+  const transformTextCase = (type: 'upper' | 'lower' | 'title' | 'sentence') => {
+    if (!text) return;
+    let transformedText = '';
+    switch (type) {
+      case 'upper':
+        transformedText = text.toUpperCase();
+        break;
+      case 'lower':
+        transformedText = text.toLowerCase();
+        break;
+      case 'title':
+        transformedText = text.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+        break;
+      case 'sentence':
+        transformedText = text.toLowerCase().replace(/(^\w|\.\s+\w)/g, (char) => char.toUpperCase());
+        break;
+    }
+    setText(transformedText);
+  };
+
+  // 添加新的颜色处理函数
+  const addColorTag = (color: string) => {
+    const textarea = document.getElementById('unity-rich-text-editor') as HTMLTextAreaElement | null;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = textarea.value;
+    
+    const openTag = `<color=${color}>`;
+    const closeTag = '</color>';
+    
+    let newValue;
+    if (start === end) {
+      // 在光标位置插入标签
+      newValue = value.slice(0, start) + openTag + closeTag + value.slice(end);
+    } else {
+      // 用标签包裹选中的文本
+      const selectedText = value.slice(start, end);
+      newValue = value.slice(0, start) + openTag + selectedText + closeTag + value.slice(end);
+    }
+    
+    // 更新文本
+    setText(newValue);
+    
+    // 设置光标位置
+    requestAnimationFrame(() => {
+      textarea.focus();
+      if (start === end) {
+        textarea.setSelectionRange(start + openTag.length, start + openTag.length);
+      } else {
+        textarea.setSelectionRange(start + openTag.length, start + openTag.length + (end - start));
+      }
+    });
+  };
+
+  // 修改颜色选择器的点击处理
+  const handleColorPickerClick = (e: React.MouseEvent<HTMLElement>) => {
+    setColorPickerAnchor(e.currentTarget);
+    setShowColorPicker(true);
+  };
+
+  // 关闭颜色选择器但不添加标签
+  const handleCloseWithoutTag = (e: React.MouseEvent) => {
+    e.stopPropagation(); // 阻止事件冒泡
+    setShowColorPicker(false);
+    setColorPickerAnchor(null);
+  };
+
+  // 修改颜色选择器的外部点击处理
+  useEffect(() => {
+    if (!showColorPicker) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const picker = document.querySelector('.chrome-picker');
+      const closeButton = document.querySelector('.color-picker-close');
+      
+      if (colorPickerAnchor && 
+          !colorPickerAnchor.contains(target) && 
+          !picker?.contains(target) &&
+          !closeButton?.contains(target)) {
+        addColorTag(customColor);
+        setShowColorPicker(false);
+        setColorPickerAnchor(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showColorPicker, colorPickerAnchor, customColor]);
+
   return (
     <Container maxWidth="md">
       <Box sx={{ my: 4 }}>
@@ -780,272 +913,335 @@ function App() {
           <Typography variant="h4" component="h1" gutterBottom>
             Unity Text Editor
           </Typography>
-          <Button variant="outlined" onClick={() => setShowUpdateDialog(true)}>
-            最近更新
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button variant="outlined" onClick={() => setShowUpdateDialog(true)}>
+              最近更新
+            </Button>
+            <Button variant="outlined" onClick={() => setShowDocDialog(true)}>
+              使用说明
+            </Button>
+          </Box>
         </Box>
         
         <EditorContainer>
           <Box sx={{ mb: 2 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-              <ToggleButtonGroup size="small">
-                <ToggleButton
-                  value="bold"
-                  onClick={() => insertMarkup('<b>', '</b>')}
-                >
-                  <FormatBoldIcon />
-                </ToggleButton>
-                <ToggleButton
-                  value="italic"
-                  onClick={() => insertMarkup('<i>', '</i>')}
-                >
-                  <FormatItalicIcon />
-                </ToggleButton>
-                <ToggleButton
-                  value="underline"
-                  onClick={() => insertMarkup('<u>', '</u>')}
-                >
-                  <FormatUnderlinedIcon />
-                </ToggleButton>
-                <ToggleButton
-                  value="strikethrough"
-                  onClick={() => insertMarkup('<s>', '</s>')}
-                >
-                  <FormatStrikethroughIcon />
-                </ToggleButton>
-                <ToggleButton
-                  value="superscript"
-                  onClick={() => insertMarkup('<sup>', '</sup>')}
-                >
-                  <SuperscriptIcon />
-                </ToggleButton>
-                <ToggleButton
-                  value="subscript"
-                  onClick={() => insertMarkup('<sub>', '</sub>')}
-                >
-                  <SubscriptIcon />
-                </ToggleButton>
-              </ToggleButtonGroup>
-              
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={enableSegmentation}
-                      onChange={(e) => setEnableSegmentation(e.target.checked)}
-                      color="primary"
-                    />
-                  }
-                  label="启用分段显示"
-                />
-                
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<TranslateIcon />}
-                  onClick={handleOpenTranslationDialog}
-                >
-                  翻译
-                </Button>
+            {/* 文本样式工具 */}
+            <Box sx={{ mb: 2 }}>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                <ToggleButtonGroup size="small" sx={{ height: 36 }}>
+                  <ToggleButton value="bold" onClick={() => insertMarkup('<b>', '</b>')} sx={{ height: 36, minHeight: 36 }}>
+                    <FormatBoldIcon />
+                  </ToggleButton>
+                  <ToggleButton value="italic" onClick={() => insertMarkup('<i>', '</i>')} sx={{ height: 36, minHeight: 36 }}>
+                    <FormatItalicIcon />
+                  </ToggleButton>
+                  <ToggleButton value="underline" onClick={() => insertMarkup('<u>', '</u>')} sx={{ height: 36, minHeight: 36 }}>
+                    <FormatUnderlinedIcon />
+                  </ToggleButton>
+                  <ToggleButton value="strikethrough" onClick={() => insertMarkup('<s>', '</s>')} sx={{ height: 36, minHeight: 36 }}>
+                    <FormatStrikethroughIcon />
+                  </ToggleButton>
+                  <ToggleButton value="superscript" onClick={() => insertMarkup('<sup>', '</sup>')} sx={{ height: 36, minHeight: 36 }}>
+                    <SuperscriptIcon />
+                  </ToggleButton>
+                  <ToggleButton value="subscript" onClick={() => insertMarkup('<sub>', '</sub>')} sx={{ height: 36, minHeight: 36 }}>
+                    <SubscriptIcon />
+                  </ToggleButton>
+                </ToggleButtonGroup>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <FormControl size="small" sx={{ minWidth: 120, height: 36 }}>
+                    <InputLabel sx={{ height: 36, lineHeight: '36px', display: 'flex', alignItems: 'center', fontSize: 16 }} shrink>字号</InputLabel>
+                    <Select
+                      value={"100%"}
+                      label="字号"
+                      onChange={handleFontSizeChange}
+                      sx={{
+                        height: 36,
+                        minHeight: 36,
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontSize: 16,
+                        '& .MuiSelect-select': {
+                          display: 'flex',
+                          alignItems: 'center',
+                          height: 36,
+                          lineHeight: '36px',
+                          paddingTop: 0,
+                          paddingBottom: 0,
+                          fontSize: 16,
+                        }
+                      }}
+                      inputProps={{ sx: { height: 36, minHeight: 36, padding: '0 8px', display: 'flex', alignItems: 'center', fontSize: 16 } }}
+                    >
+                      <MenuItem value="">请选择字号</MenuItem>
+                      <MenuItem value="50%" sx={{ fontSize: 16 }}>50%</MenuItem>
+                      <MenuItem value="75%" sx={{ fontSize: 16 }}>75%</MenuItem>
+                      <MenuItem value="100%" sx={{ fontSize: 16 }}>100%</MenuItem>
+                      <MenuItem value="125%" sx={{ fontSize: 16 }}>125%</MenuItem>
+                      <MenuItem value="150%" sx={{ fontSize: 16 }}>150%</MenuItem>
+                      <MenuItem value="200%" sx={{ fontSize: 16 }}>200%</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+
+                {/* Special Symbols Section */}
+                <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  <Typography variant="subtitle2" sx={{ mr: 1, alignSelf: 'center' }}>特殊符号:</Typography>
+                  {specialSymbols.map((symbol) => (
+                    <Button
+                      key={symbol.value}
+                      variant="outlined"
+                      size="small"
+                      onClick={() => insertSymbol(symbol.value)}
+                      sx={{ minWidth: 'auto', px: 1 }}
+                    >
+                      {symbol.name}
+                    </Button>
+                  ))}
+                </Box>
+
+                {/* Predefined Colors Section */}
+                <Box sx={{ mt: 1 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 0.5 }}>稀有度:</Typography>
+                  <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                    {Object.entries(colorCategories.rarity).map(([key, color]) => (
+                      <Button
+                        key={key}
+                        variant="outlined"
+                        size="small"
+                        onClick={() => insertMarkup(`<color=${color}>`, '</color>')}
+                        sx={{ 
+                          minWidth: 'auto', 
+                          px: 1,
+                          backgroundColor: color,
+                          color: getContrastColor(color),
+                          border: '1px solid #ccc',
+                        }}
+                      >
+                        {key === 'normal' ? '普通' : 
+                         key === 'uncommon' ? '罕见' : 
+                         key === 'rare' ? '稀有' : 
+                         key === 'epic' ? '史诗' : 
+                         key === 'legendary' ? '传说' : key}
+                      </Button>
+                    ))}
+                  </Box>
+
+                  <Typography variant="subtitle2" sx={{ mb: 0.5 }}>元素:</Typography>
+                  <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                    {Object.entries(colorCategories.element).map(([key, color]) => (
+                      <Button
+                        key={key}
+                        variant="outlined"
+                        size="small"
+                        onClick={() => insertMarkup(`<color=${color}>`, '</color>')}
+                        sx={{ 
+                          minWidth: 'auto', 
+                          px: 1,
+                          backgroundColor: color,
+                          color: getContrastColor(color),
+                          border: '1px solid #ccc',
+                        }}
+                      >
+                        {key === 'frost' ? '冰霜' : 
+                         key === 'fire' ? '火焰' : 
+                         key === 'nature' ? '自然' : 
+                         key === 'holy' ? '神圣' : 
+                         key === 'shadow' ? '暗影' : key}
+                      </Button>
+                    ))}
+                  </Box>
+
+                  <Typography variant="subtitle2" sx={{ mb: 0.5 }}>其他:</Typography>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    {Object.entries(colorCategories.emphasis).map(([key, color]) => (
+                      <Button
+                        key={key}
+                        variant="outlined"
+                        size="small"
+                        onClick={() => insertMarkup(`<color=${color}>`, '</color>')}
+                        sx={{
+                          minWidth: 'auto',
+                          px: 1,
+                          backgroundColor: color,
+                          color: getContrastColor(color),
+                          border: '1px solid #ccc',
+                          borderRadius: 1,
+                          boxShadow: 'none',
+                          fontWeight: 500
+                        }}
+                      >
+                        {key === 'neutral' ? '中性' :
+                         key === 'positive' ? '正面' :
+                         key === 'negative' ? '负面' : key}
+                      </Button>
+                    ))}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={handleColorPickerClick}
+                      sx={{
+                        minWidth: 'auto',
+                        px: 2,
+                        backgroundColor: customColor,
+                        color: getContrastColor(customColor),
+                        border: '1px solid #ccc',
+                        borderRadius: 1,
+                        boxShadow: 'none',
+                        fontWeight: 500
+                      }}
+                    >
+                      自定义
+                    </Button>
+                  </Box>
+                </Box>
               </Box>
             </Box>
 
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-              <FormControl size="small" sx={{ minWidth: 120 }}>
-                <InputLabel>字号</InputLabel>
-                <Select
-                  value=""
-                  label="字号"
-                  onChange={handleFontSizeChange}
-                >
-                  <MenuItem value="">请选择字号</MenuItem>
-                  <MenuItem value="50%">50%</MenuItem>
-                  <MenuItem value="75%">75%</MenuItem>
-                  <MenuItem value="100%">100%</MenuItem>
-                  <MenuItem value="125%">125%</MenuItem>
-                  <MenuItem value="150%">150%</MenuItem>
-                  <MenuItem value="200%">200%</MenuItem>
-                </Select>
-              </FormControl>
-
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => {
-                  const color = '#FF0000'; // 默认颜色，可以更改
-                  insertMarkup(`<color=${color}>`, '</color>');
-                }}
-                sx={{ 
-                  minWidth: 50, 
-                  height: 30, 
-                  border: '1px solid #ccc',
-                }}
-              >
-                字体颜色
-              </Button>
-              
-              <input
-                type="color"
-                onChange={(e) => {
-                  const color = e.target.value;
-                  insertMarkup(`<color=${color}>`, '</color>');
-                }}
-                style={{ width: 50, height: 30, padding: 0, border: 'none' }}
+            {/* 编辑器和操作按钮 */}
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+              <UnityRichTextEditor
+                value={text}
+                onChange={setText}
+                disabled={!hasSelection}
+                placeholder={hasSelection ? "在此输入文本..." : "选择一个单元格来显示内容"}
+                style={{ minWidth: 0, flex: 1, height: '200px' }}
+                textareaRef={editorRef}
               />
-              
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => insertMarkup('<color=#000000>', '</color>')}
-                sx={{ 
-                  minWidth: 'auto', 
-                  px: 1,
-                  height: 30,
-                }}
-              >
-                默认颜色
-              </Button>
-            </Box>
-
-            {/* Special Symbols Section */}
-            <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              <Typography variant="subtitle2" sx={{ mr: 1, alignSelf: 'center' }}>特殊符号:</Typography>
-              {specialSymbols.map((symbol) => (
+              <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                alignItems: 'flex-end',
+                height: '200px',
+                minWidth: 96,
+                ml: 0
+              }}>
                 <Button
-                  key={symbol.value}
-                  variant="outlined"
-                  size="small"
-                  onClick={() => insertSymbol(symbol.value)}
-                  sx={{ minWidth: 'auto', px: 1 }}
+                  variant="contained"
+                  color="primary"
+                  onClick={handleOpenTranslationDialog}
+                  sx={{ width: 88, height: 36, borderRadius: 1, p: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', minWidth: 0, minHeight: 0, pl: 1 }}
+                  disabled={!hasSelection}
                 >
-                  {symbol.name}
+                  <TranslateIcon fontSize="small" style={{ marginRight: 6 }} />
+                  <span style={{ fontSize: 14 }}>翻译</span>
                 </Button>
-              ))}
-            </Box>
-
-            {/* Predefined Colors Section */}
-            <Box sx={{ mt: 1 }}>
-              <Typography variant="subtitle2" sx={{ mb: 0.5 }}>稀有度:</Typography>
-              <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                {Object.entries(colorCategories.rarity).map(([key, color]) => (
-                  <Button
-                    key={key}
-                    variant="outlined"
-                    size="small"
-                    onClick={() => insertMarkup(`<color=${color}>`, '</color>')}
-                    sx={{ 
-                      minWidth: 'auto', 
-                      px: 1,
-                      backgroundColor: color,
-                      color: getContrastColor(color),
-                      border: '1px solid #ccc',
-                    }}
-                  >
-                    {key === 'normal' ? '普通' : 
-                     key === 'uncommon' ? '罕见' : 
-                     key === 'rare' ? '稀有' : 
-                     key === 'epic' ? '史诗' : 
-                     key === 'legendary' ? '传说' : key}
-                  </Button>
-                ))}
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={(e) => {
+                    const button = e.currentTarget;
+                    const rect = button.getBoundingClientRect();
+                    const menu = document.createElement('div');
+                    menu.style.position = 'fixed';
+                    menu.style.top = `${rect.bottom + 5}px`;
+                    menu.style.left = `${rect.left}px`;
+                    menu.style.backgroundColor = 'white';
+                    menu.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+                    menu.style.borderRadius = '4px';
+                    menu.style.zIndex = '13010';
+                    menu.style.padding = '4px 0';
+                    
+                    const closeMenu = (e: MouseEvent) => {
+                      if (!menu.contains(e.target as Node) && e.target !== button) {
+                        if (document.body.contains(menu)) {
+                          document.body.removeChild(menu);
+                        }
+                        document.removeEventListener('click', closeMenu);
+                      }
+                    };
+                    
+                    const fontMenuOptions = [
+                      { label: '全部大写', action: () => transformTextCase('upper') },
+                      { label: '全部小写', action: () => transformTextCase('lower') },
+                      { label: '仅词首大写', action: () => transformTextCase('title') },
+                      { label: '仅句首大写', action: () => transformTextCase('sentence') }
+                    ];
+                    
+                    fontMenuOptions.forEach(option => {
+                      const item = document.createElement('div');
+                      item.style.padding = '8px 16px';
+                      item.style.cursor = 'pointer';
+                      item.style.whiteSpace = 'nowrap';
+                      item.textContent = option.label;
+                      item.onmouseover = () => item.style.backgroundColor = '#f5f5f5';
+                      item.onmouseout = () => item.style.backgroundColor = 'transparent';
+                      item.onclick = () => {
+                        option.action();
+                        if (document.body.contains(menu)) {
+                          document.body.removeChild(menu);
+                        }
+                      };
+                      menu.appendChild(item);
+                    });
+                    document.body.appendChild(menu);
+                    setTimeout(() => document.addEventListener('click', closeMenu), 0);
+                  }}
+                  sx={{ width: 88, height: 36, borderRadius: 1, p: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', minWidth: 0, minHeight: 0, pl: 1 }}
+                  disabled={!hasSelection}
+                >
+                  <TextFieldsIcon fontSize="small" style={{ marginRight: 6 }} />
+                  <span style={{ fontSize: 14 }}>字型</span>
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => handleSave(text)}
+                  disabled={!isConnected || !hasSelection}
+                  sx={{ width: 88, height: 36, borderRadius: 1, p: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', minWidth: 0, minHeight: 0, pl: 1 }}
+                >
+                  <SaveIcon fontSize="small" style={{ marginRight: 6 }} />
+                  <span style={{ fontSize: 14 }}>保存</span>
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={handleReset}
+                  disabled={!isConnected}
+                  sx={{ width: 88, height: 36, borderRadius: 1, p: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', minWidth: 0, minHeight: 0, pl: 1 }}
+                >
+                  <RestartAltIcon fontSize="small" style={{ marginRight: 6 }} />
+                  <span style={{ fontSize: 14 }}>重置</span>
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={() => setText(stripTagsAndParams(text))}
+                  disabled={!text}
+                  sx={{ width: 88, height: 36, borderRadius: 1, p: 0, display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', boxShadow: '0 1px 3px rgba(0,0,0,0.08)', minWidth: 0, minHeight: 0, pl: 1 }}
+                >
+                  <CleaningServicesIcon fontSize="small" style={{ marginRight: 6 }} />
+                  <span style={{ fontSize: 14 }}>清除</span>
+                </Button>
               </Box>
-
-              <Typography variant="subtitle2" sx={{ mb: 0.5 }}>元素:</Typography>
-              <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-                {Object.entries(colorCategories.element).map(([key, color]) => (
-                  <Button
-                    key={key}
-                    variant="outlined"
-                    size="small"
-                    onClick={() => insertMarkup(`<color=${color}>`, '</color>')}
-                    sx={{ 
-                      minWidth: 'auto', 
-                      px: 1,
-                      backgroundColor: color,
-                      color: getContrastColor(color),
-                      border: '1px solid #ccc',
-                    }}
-                  >
-                    {key === 'frost' ? '冰霜' : 
-                     key === 'fire' ? '火焰' : 
-                     key === 'nature' ? '自然' : 
-                     key === 'holy' ? '神圣' : 
-                     key === 'shadow' ? '暗影' : key}
-                  </Button>
-                ))}
-              </Box>
-
-              <Typography variant="subtitle2" sx={{ mb: 0.5 }}>强调色:</Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                {Object.entries(colorCategories.emphasis).map(([key, color]) => (
-                  <Button
-                    key={key}
-                    variant="outlined"
-                    size="small"
-                    onClick={() => insertMarkup(`<color=${color}>`, '</color>')}
-                    sx={{ 
-                      minWidth: 'auto', 
-                      px: 1,
-                      backgroundColor: color,
-                      color: getContrastColor(color),
-                      border: '1px solid #ccc',
-                    }}
-                  >
-                    {key === 'neutral' ? '中性' : 
-                     key === 'positive' ? '正面' : 
-                     key === 'negative' ? '负面' : key}
-                  </Button>
-                ))}
-              </Box>
-            </Box>
-          </Box>
-
-          <Box sx={{ display: 'flex', gap: 2, mb: 1, alignItems: 'stretch' }}>
-            <UnityRichTextEditor
-              value={text}
-              onChange={setText}
-              disabled={!hasSelection}
-              placeholder={hasSelection ? "在此输入文本..." : "选择一个单元格来显示内容"}
-              style={{ minWidth: 0, flex: 1, height: '100%' }}
-            />
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
-              <Button
-                variant="contained"
-                startIcon={<RestartAltIcon />}
-                onClick={handleReset}
-                disabled={!isConnected}
-                sx={{ minWidth: '100px', flex: 1, minHeight: 0 }}
-              >
-                重置
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => handleSave(text)}
-                disabled={!isConnected || !hasSelection}
-                startIcon={<SaveIcon />}
-                sx={{ minWidth: '100px', flex: 1, minHeight: 0, '&.Mui-disabled': { backgroundColor: '#ccc', color: '#666' } }}
-              >
-                保存
-              </Button>
-              <Button
-                variant="contained"
-                color="error"
-                onClick={() => setText(stripTagsAndParams(text))}
-                disabled={!text}
-                sx={{ minWidth: '100px', flex: 1, minHeight: 0, marginTop: '-4px', '&.Mui-disabled': { backgroundColor: '#ccc', color: '#666' } }}
-              >
-                清除样式
-              </Button>
             </Box>
           </Box>
         </EditorContainer>
 
         <PreviewContainer>
+          {/* 预览设置：分段显示和背景颜色 */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Typography variant="h6" sx={{ color: '#D2D2D2' }}>
-              预览:
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="h6" sx={{ color: '#D2D2D2' }}>
+                预览:
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={enableSegmentation}
+                    onChange={(e) => setEnableSegmentation(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label={
+                  <Typography variant="body2" sx={{ color: '#D2D2D2' }}>
+                    启用分段显示
+                  </Typography>
+                }
+              />
+            </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography variant="body2" sx={{ color: '#D2D2D2' }}>
                 背景颜色:
@@ -1109,7 +1305,8 @@ function App() {
         open={showCopyAlert}
         autoHideDuration={2000}
         onClose={() => setShowCopyAlert(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{ top: '50% !important', transform: 'translateY(-50%)' }}
       >
         <Alert severity="success" sx={{ width: '100%' }}>
           {isConnected ? '已连接到多维表格' : '文本已复制到剪贴板！'}
@@ -1122,7 +1319,8 @@ function App() {
           open={showSuccess}
           autoHideDuration={2000}
           onClose={() => setShowSuccess(false)}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          sx={{ top: '50% !important', transform: 'translateY(-50%)' }}
         >
           <Alert 
             severity="success" 
@@ -1191,10 +1389,58 @@ function App() {
                   <Button
                     variant="outlined"
                     size="small"
-                    onClick={() => setTranslatedText(translatedText.toUpperCase())}
+                    startIcon={<TextFieldsIcon />}
+                    onClick={(e) => {
+                      const button = e.currentTarget;
+                      const rect = button.getBoundingClientRect();
+                      const menu = document.createElement('div');
+                      menu.style.position = 'fixed';
+                      menu.style.top = `${rect.bottom + 5}px`;
+                      menu.style.left = `${rect.left}px`;
+                      menu.style.backgroundColor = 'white';
+                      menu.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+                      menu.style.borderRadius = '4px';
+                      menu.style.zIndex = '13010';
+                      menu.style.padding = '4px 0';
+                      
+                      const closeMenu = (e: MouseEvent) => {
+                        if (!menu.contains(e.target as Node) && e.target !== button) {
+                          if (document.body.contains(menu)) {
+                            document.body.removeChild(menu);
+                          }
+                          document.removeEventListener('click', closeMenu);
+                        }
+                      };
+                      
+                      const fontMenuOptions = [
+                        { label: '全部大写', action: () => transformTextCase('upper') },
+                        { label: '全部小写', action: () => transformTextCase('lower') },
+                        { label: '仅词首大写', action: () => transformTextCase('title') },
+                        { label: '仅句首大写', action: () => transformTextCase('sentence') }
+                      ];
+                      
+                      fontMenuOptions.forEach(option => {
+                        const item = document.createElement('div');
+                        item.style.padding = '8px 16px';
+                        item.style.cursor = 'pointer';
+                        item.style.whiteSpace = 'nowrap';
+                        item.textContent = option.label;
+                        item.onmouseover = () => item.style.backgroundColor = '#f5f5f5';
+                        item.onmouseout = () => item.style.backgroundColor = 'transparent';
+                        item.onclick = () => {
+                          option.action();
+                          if (document.body.contains(menu)) {
+                            document.body.removeChild(menu);
+                          }
+                        };
+                        menu.appendChild(item);
+                      });
+                      document.body.appendChild(menu);
+                      setTimeout(() => document.addEventListener('click', closeMenu), 0);
+                    }}
                     disabled={!translatedText}
                   >
-                    全部大写
+                    字型
                   </Button>
                 </Box>
               </Box>
@@ -1223,7 +1469,8 @@ function App() {
         open={showCopySnackbar}
         autoHideDuration={1500}
         onClose={() => setShowCopySnackbar(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{ top: '50% !important', transform: 'translateY(-50%)' }}
       >
         <Alert severity="success" sx={{ width: '100%' }}>
           翻译内容已复制到剪贴板！
@@ -1235,7 +1482,8 @@ function App() {
           open={!!translationError}
           autoHideDuration={2000}
           onClose={() => setTranslationError('')}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+          sx={{ top: '50% !important', transform: 'translateY(-50%)' }}
         >
           <Alert severity="error" sx={{ width: '100%' }}>
             {translationError}
@@ -1257,6 +1505,104 @@ function App() {
           <Button onClick={() => setShowUpdateDialog(false)}>关闭</Button>
         </DialogActions>
       </Dialog>
+      {/* 插件使用文档弹窗 */}
+      <Dialog open={showDocDialog} onClose={() => setShowDocDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Unity Text Editor 插件使用说明</DialogTitle>
+        <DialogContent>
+          <Box sx={{ 
+            '& .use-doc': {
+              fontSize: 16,
+              lineHeight: 1.8,
+              '& h1': {
+                fontSize: '1.5em',
+                fontWeight: 'bold',
+                marginBottom: '1em',
+                color: '#333'
+              },
+              '& h2': {
+                fontSize: '1.2em',
+                fontWeight: 'bold',
+                marginTop: '1em',
+                marginBottom: '0.5em',
+                color: '#444'
+              },
+              '& ul': {
+                margin: '0.5em 0',
+                paddingLeft: '1.5em'
+              },
+              '& li': {
+                marginBottom: '0.5em'
+              },
+              '& b, & i, & u, & s, & sup, & sub': {
+                margin: '0 0.2em'
+              }
+            }
+          }}>
+            <div dangerouslySetInnerHTML={{ __html: useDoc }} />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowDocDialog(false)}>关闭</Button>
+        </DialogActions>
+      </Dialog>
+      {/* 自定义颜色选择弹窗 */}
+      {showColorPicker && colorPickerAnchor && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: colorPickerAnchor.getBoundingClientRect().bottom + 8,
+            left: colorPickerAnchor.getBoundingClientRect().left,
+            zIndex: 20000,
+            background: '#fff',
+            border: '1px solid #ccc',
+            borderRadius: 1,
+            p: 2,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+          }}
+        >
+          <Box sx={{ position: 'relative' }}>
+            <Box
+              className="color-picker-close"
+              onClick={handleCloseWithoutTag}
+              sx={{
+                position: 'absolute',
+                top: -8,
+                right: -8,
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                backgroundColor: '#f5f5f5',
+                border: '1px solid #ccc',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                zIndex: 1,
+                '&:hover': {
+                  backgroundColor: '#e0e0e0',
+                }
+              }}
+            >
+              <Typography
+                sx={{
+                  fontSize: 16,
+                  lineHeight: 1,
+                  color: '#666',
+                  userSelect: 'none'
+                }}
+              >
+                ×
+              </Typography>
+            </Box>
+            <ChromePicker
+              color={customColor}
+              onChange={(color: ColorResult) => setCustomColor(color.hex)}
+              onChangeComplete={(color: ColorResult) => setCustomColor(color.hex)}
+              disableAlpha
+            />
+          </Box>
+        </Box>
+      )}
     </Container>
   );
 }
