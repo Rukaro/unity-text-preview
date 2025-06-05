@@ -20,7 +20,6 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
-  Tooltip,
 } from '@mui/material';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatUnderlinedIcon from '@mui/icons-material/FormatUnderlined';
@@ -32,7 +31,6 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import SaveIcon from '@mui/icons-material/Save';
 import TranslateIcon from '@mui/icons-material/Translate';
 import CleaningServicesIcon from '@mui/icons-material/CleaningServices';
-import BroomIcon from '@mui/icons-material/AutoFixHigh';
 import TextFieldsIcon from '@mui/icons-material/TextFields';
 import { styled } from '@mui/material/styles';
 import { bitable } from '@lark-base-open/js-sdk';
