@@ -126,6 +126,7 @@ const colorCategories = {
 const specialSymbols = [
   { name: '软连接符', value: '\\u00AD', description: '软连接符（不可见连字符）' },
   { name: '不换行空格', value: '\\u00A0', description: '不换行空格' },
+  { name: '制表符', value: '\\u0009', description: '制表符' },
   { name: '防止修剪间隙', value: '<space=0.25em>', description: '宽度为0.25em的空格' },
 ];
 
@@ -364,6 +365,7 @@ function App() {
   const defaultBgColor = '#0E1F34';
   const [hasSelection, setHasSelection] = useState(false);
   const [enableSegmentation, setEnableSegmentation] = useState(true);
+  const [enableCenterAlignment, setEnableCenterAlignment] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [showTranslationDialog, setShowTranslationDialog] = useState(false);
@@ -642,8 +644,13 @@ function App() {
 
   // Function to convert plain text with markup to Unity rich text
   function convertToUnityRichText(text: string): string {
+    // First, convert Unicode escape sequences to actual Unicode characters
+    let html = text.replace(/\\u([0-9a-fA-F]{4})/g, (match, grp) => {
+      return String.fromCharCode(parseInt(grp, 16));
+    });
+
     // 处理 <b> <i> <u> <s> <sup> <sub>
-    let html = text
+    html = html
       .replace(/<b>(.*?)<\/b>/g, '<strong>$1</strong>')
       .replace(/<i>(.*?)<\/i>/g, '<em>$1</em>')
       .replace(/<u>(.*?)<\/u>/g, '<u>$1</u>')
@@ -1254,9 +1261,6 @@ function App() {
           {/* 预览设置：分段显示和背景颜色 */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Typography variant="h6" sx={{ color: '#D2D2D2' }}>
-                预览:
-              </Typography>
               <FormControlLabel
                 control={
                   <Switch
@@ -1268,6 +1272,20 @@ function App() {
                 label={
                   <Typography variant="body2" sx={{ color: '#D2D2D2' }}>
                     启用分段显示
+                  </Typography>
+                }
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={enableCenterAlignment}
+                    onChange={(e) => setEnableCenterAlignment(e.target.checked)}
+                    color="primary"
+                  />
+                }
+                label={
+                  <Typography variant="body2" sx={{ color: '#D2D2D2' }}>
+                    居中显示
                   </Typography>
                 }
               />
@@ -1314,6 +1332,7 @@ function App() {
               padding: 2,
               borderRadius: 1,
               fontWeight: 'normal',
+              textAlign: enableCenterAlignment ? 'center' : 'left',
               '& strong': { fontWeight: 'bold' },
               '& em': { fontStyle: 'italic' },
               '& u': { textDecoration: 'underline' },
