@@ -59,6 +59,13 @@ fontFaceStyle.textContent = `
     font-style: normal;
     font-display: swap;
   }
+
+  /* 新增的 CSS 规则 */
+  .chinese-word-wrap-editor textarea {
+    white-space: pre-wrap !important;
+    overflow-wrap: break-word !important;
+    word-break: keep-all !important; /* 对于中文等CJK文本更合适 */
+  }
 `;
 document.head.appendChild(fontFaceStyle);
 
@@ -284,6 +291,7 @@ const UnityRichTextEditor = ({ value, onChange, disabled, placeholder, style, ..
         fontFamily: 'Alibaba PuHuiTi, sans-serif',
         fontSize: 16,
         minHeight: 120,
+        overflowY: 'auto',
         background: '#f5f6fa',
         color: '#222',
         borderRadius: 8,
@@ -292,6 +300,7 @@ const UnityRichTextEditor = ({ value, onChange, disabled, placeholder, style, ..
         boxShadow: 'none',
         ...style,
       }}
+      textareaClassName="chinese-word-wrap-editor"
       disabled={disabled}
       textareaRef={props.textareaRef}
       {...props}
@@ -1274,7 +1283,7 @@ function App() {
             sx={{ 
               margin: 0,
               whiteSpace: 'pre-wrap',
-              wordBreak: 'break-all',
+              wordBreak: 'break-word',
               overflowWrap: 'break-word',
               fontFamily: 'Alibaba PuHuiTi, sans-serif',
               color: '#D2D2D2',
