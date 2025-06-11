@@ -291,7 +291,7 @@ const highlightWithBold = (code: string) => {
 };
 
 const UnityRichTextEditor = ({ value, onChange, disabled, placeholder, style, ...props }: any) => (
-  <Box sx={{ width: '100%' }}>
+  <Box sx={{ width: '100%', height: '100%' }}>
     <Editor
       value={value}
       onValueChange={onChange}
@@ -303,7 +303,8 @@ const UnityRichTextEditor = ({ value, onChange, disabled, placeholder, style, ..
         fontFamily: 'Alibaba PuHuiTi, sans-serif',
         fontSize: 16,
         lineHeight: 1.5,
-        minHeight: 120,
+        height: '100%',
+        overflowY: 'auto',
         background: '#f5f6fa',
         color: '#222',
         borderRadius: 8,
@@ -1129,7 +1130,7 @@ function App() {
             </Box>
 
             {/* 编辑器和操作按钮 */}
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', height: '200px', overflowY: 'auto' }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', height: '200px' }}>
               <UnityRichTextEditor
                 value={text}
                 onChange={setText}
