@@ -66,6 +66,16 @@ fontFaceStyle.textContent = `
     overflow-wrap: break-word !important;
     word-break: keep-all !important; /* 对于中文等CJK文本更合适 */
   }
+
+  /* 解决选中黑边跟随滚动问题 */
+  .chinese-word-wrap-editor textarea::selection {
+    background-color: rgba(0, 0, 0, 0.1); /* 半透明黑色 */
+    color: inherit;
+  }
+  .chinese-word-wrap-editor textarea::-moz-selection {
+    background-color: rgba(0, 0, 0, 0.1); /* Firefox */
+    color: inherit;
+  }
 `;
 document.head.appendChild(fontFaceStyle);
 
