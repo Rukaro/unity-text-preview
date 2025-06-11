@@ -62,9 +62,11 @@ fontFaceStyle.textContent = `
 
   /* 新增的 CSS 规则 */
   .chinese-word-wrap-editor textarea {
-    white-space: pre-wrap !important;
-    overflow-wrap: break-word !important;
-    word-break: keep-all !important; /* 对于中文等CJK文本更合适 */
+    white-space: pre !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+    line-height: inherit !important; /* Ensure consistent line height */
+    user-select: text !important; /* Ensure text is selectable */
   }
 
   /* 解决选中黑边跟随滚动问题 */
@@ -300,8 +302,8 @@ const UnityRichTextEditor = ({ value, onChange, disabled, placeholder, style, ..
       style={{
         fontFamily: 'Alibaba PuHuiTi, sans-serif',
         fontSize: 16,
+        lineHeight: 1.5,
         minHeight: 120,
-        overflowY: 'auto',
         background: '#f5f6fa',
         color: '#222',
         borderRadius: 8,
@@ -311,6 +313,7 @@ const UnityRichTextEditor = ({ value, onChange, disabled, placeholder, style, ..
         ...style,
       }}
       textareaClassName="chinese-word-wrap-editor"
+      preClassName="unity-editor-pre"
       disabled={disabled}
       textareaRef={props.textareaRef}
       {...props}
@@ -1126,13 +1129,13 @@ function App() {
             </Box>
 
             {/* 编辑器和操作按钮 */}
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', height: '200px', overflowY: 'auto' }}>
               <UnityRichTextEditor
                 value={text}
                 onChange={setText}
                 disabled={!hasSelection}
                 placeholder={hasSelection ? "在此输入文本..." : "选择一个单元格来显示内容"}
-                style={{ minWidth: 0, flex: 1, height: '200px' }}
+                style={{ minWidth: 0, flex: 1, height: '100%' }}
                 textareaRef={editorRef}
               />
               <Box sx={{

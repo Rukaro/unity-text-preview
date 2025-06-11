@@ -36,3 +36,16 @@
     transform: rotate(360deg);
   }
 }
+
+/* Ensure consistent white-space and line-height for textarea and pre in the editor */
+.chinese-word-wrap-editor textarea, .unity-editor-pre {
+  white-space: pre !important;
+  line-height: inherit !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  padding: 12px !important;
+  overflow: hidden !important;
+}
