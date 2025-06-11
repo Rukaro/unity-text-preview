@@ -842,10 +842,19 @@ function App() {
         transformedText = text.toLowerCase();
         break;
       case 'title':
-        transformedText = text.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase());
+        transformedText = text.toLowerCase().replace(/(^|\s)(\S)/gu, (match, p1, p2) => p1 + p2.toUpperCase());
         break;
       case 'sentence':
-        transformedText = text.toLowerCase().replace(/(^\w|\.\s+\w)/g, (char) => char.toUpperCase());
+        transformedText = text.toLowerCase();
+        // Capitalize the first letter of the string
+        if (transformedText.length > 0) {
+          transformedText = transformedText.charAt(0).toUpperCase() + transformedText.slice(1);
+        }
+        // Capitalize the first letter after a period, exclamation, or question mark (including Chinese full stop)
+        // It also handles cases where there are non-letter characters between the punctuation and the letter.
+        transformedText = transformedText.replace(/([.?!。])([^\p{L}]*)(\p{L})/gu, (match, p1, p2, p3) => {
+          return p1 + p2 + p3.toUpperCase();
+        });
         break;
     }
     setText(transformedText);
