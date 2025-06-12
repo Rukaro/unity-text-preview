@@ -38,13 +38,33 @@
 }
 
 /* Ensure consistent white-space and line-height for textarea and pre in the editor */
-.chinese-word-wrap-editor textarea, .unity-editor-pre {
+.chinese-word-wrap-editor, .unity-editor-pre {
   white-space: pre !important;
   line-height: inherit !important;
+  padding: 12px !important;
   position: absolute !important;
   top: 0 !important;
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  padding: 12px !important;
+}
+
+/* Specific styles for the textarea for selection */
+.chinese-word-wrap-editor {
+  overflow-x: hidden !important; /* Prevent horizontal scroll for typical text editor */
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+}
+
+/* Fix selection behavior */
+.chinese-word-wrap-editor::selection {
+  background-color: transparent !important;
+  color: inherit !important;
+}
+
+.chinese-word-wrap-editor::-moz-selection {
+  background-color: transparent !important;
+  color: inherit !important;
 }

@@ -59,25 +59,6 @@ fontFaceStyle.textContent = `
     font-style: normal;
     font-display: swap;
   }
-
-  /* 新增的 CSS 规则 */
-  .chinese-word-wrap-editor textarea {
-    white-space: pre !important;
-    overflow-wrap: normal !important;
-    word-break: normal !important;
-    line-height: inherit !important; /* Ensure consistent line height */
-    user-select: text !important; /* Ensure text is selectable */
-  }
-
-  /* 解决选中黑边跟随滚动问题 */
-  .chinese-word-wrap-editor textarea::selection {
-    background-color: rgba(0, 0, 0, 0.1); /* 半透明黑色 */
-    color: inherit;
-  }
-  .chinese-word-wrap-editor textarea::-moz-selection {
-    background-color: rgba(0, 0, 0, 0.1); /* Firefox */
-    color: inherit;
-  }
 `;
 document.head.appendChild(fontFaceStyle);
 
@@ -292,7 +273,7 @@ const highlightWithBold = (code: string) => {
 };
 
 const UnityRichTextEditor = ({ value, onChange, disabled, placeholder, style, ...props }: any) => (
-  <Box sx={{ width: '100%', height: '100%' }}>
+  <Box sx={{ width: '100%' }}>
     <Editor
       value={value}
       onValueChange={onChange}
@@ -304,8 +285,6 @@ const UnityRichTextEditor = ({ value, onChange, disabled, placeholder, style, ..
         fontFamily: 'Alibaba PuHuiTi, sans-serif',
         fontSize: 16,
         lineHeight: 1.5,
-        height: '100%',
-        overflowY: 'auto',
         background: '#f5f6fa',
         color: '#222',
         borderRadius: 8,
@@ -1137,13 +1116,13 @@ function App() {
             </Box>
 
             {/* 编辑器和操作按钮 */}
-            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', height: '200px' }}>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
               <UnityRichTextEditor
                 value={text}
                 onChange={setText}
                 disabled={!hasSelection}
                 placeholder={hasSelection ? "在此输入文本..." : "选择一个单元格来显示内容"}
-                style={{ minWidth: 0, flex: 1, height: '100%' }}
+                style={{ minWidth: 0, flex: 1 }}
                 textareaRef={editorRef}
               />
               <Box sx={{
@@ -1152,6 +1131,7 @@ function App() {
                 justifyContent: 'space-between',
                 alignItems: 'flex-end',
                 height: '200px',
+                overflowY: 'auto',
                 minWidth: 96,
                 ml: 0
               }}>
