@@ -90,11 +90,11 @@ const colorCategories = {
     legendary: '#FEA95D',
   },
   element: {
-    frost: '#1387E8',
-    fire: '#C01E18',
-    nature: '#009500',
-    holy: '#F89C0A',
-    shadow: '#930BC3',
+    frost: '#35A2FF',
+    fire: '#F43B3B',
+    nature: '#68C373',
+    holy: '#F29D49',
+    shadow: '#CD65E7',
   },
   emphasis: {
     neutral: '#14cbf9',
@@ -1063,8 +1063,8 @@ function App() {
                         {key === 'frost' ? '冰霜' : 
                          key === 'fire' ? '火焰' : 
                          key === 'nature' ? '自然' : 
-                         key === 'holy' ? '神圣' : 
-                         key === 'shadow' ? '暗影' : key}
+                         key === 'holy' ? '光明' : 
+                         key === 'shadow' ? '黑暗' : key}
                       </Button>
                     ))}
                   </Box>
