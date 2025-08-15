@@ -81,25 +81,50 @@ const PreviewContainer = styled(Paper)(({ theme }) => ({
 }));
 
 // Predefined color categories
+const semanticColors = {
+  // 元素类型
+  ice: '#1387E8',      // 冰霜
+  fire: '#C01E18',     // 火焰
+  nature: '#009500',   // 自然
+  holy: '#F89C0A',     // 光明
+  dark: '#930BC3',     // 黑暗
+  
+  // 稀有度
+  common: '#70AEC3',   // 普通
+  uncommon: '#20E92E', // 罕见
+  rare: '#029DFF',     // 稀有
+  epic: '#E776FF',     // 史诗
+  legend: '#FEA95D',   // 传说
+  
+  // 情感倾向
+  positive: '#43f76d', // 正面
+  negative: '#f52528', // 负面
+  neutral: '#14cbf9',  // 中立
+  
+  // 全部
+  all: '#FFFFFF',      // 全部
+};
+
+// 语义颜色分类（用于UI显示）
 const colorCategories = {
-  rarity: {
-    normal: '#70AEC3',
-    uncommon: '#20E92E',
-    rare: '#029DFF',
-    epic: '#E776FF',
-    legendary: '#FEA95D',
-  },
   element: {
-    frost: '#1387E8',
-    fire: '#C01E18',
-    nature: '#009500',
-    holy: '#F89C0A',
-    shadow: '#930BC3',
+    ice: semanticColors.ice,
+    fire: semanticColors.fire,
+    nature: semanticColors.nature,
+    holy: semanticColors.holy,
+    dark: semanticColors.dark,
+  },
+  rarity: {
+    common: semanticColors.common,
+    uncommon: semanticColors.uncommon,
+    rare: semanticColors.rare,
+    epic: semanticColors.epic,
+    legend: semanticColors.legend,
   },
   emphasis: {
-    neutral: '#14cbf9',
-    positive: '#43f76d',
-    negative: '#f52528',
+    positive: semanticColors.positive,
+    negative: semanticColors.negative,
+    neutral: semanticColors.neutral,
   },
 };
 
@@ -136,6 +161,11 @@ const supportedLanguages = [
 
 // 更新日志（按时间倒序排列）
 const updateLogs = [
+  {
+    version: 'v1.3.0',
+    date: '2025-01-27',
+    content: '新增语义颜色系统，支持使用 <style=neutral> 等语义标签代替颜色值，包括元素类型、稀有度、情感倾向等分类。',
+  },
   {
     version: 'v1.2.4',
     date: '2025-05-22',
@@ -208,6 +238,19 @@ Prism.languages.unityrt = {
       }
     }
   },
+  'style-tag': {
+    // 匹配语义颜色标签
+    pattern: /<style=[^>]+>([^<]*)<\/style>/g,
+    inside: {
+      'tag': /<\/?style[^>]*>/,
+      'attr-value': /=[^>]+/,
+      'punctuation': /[<>/]/,
+      'content': {
+        pattern: /[^<>]+/,
+        alias: 'bold'
+      }
+    }
+  },
   'string': /".*?"|'.*?'/,
   'number': /\b\d+(?:\.\d+)?%?\b/,
   'operator': /[=]/,
@@ -216,22 +259,22 @@ Prism.languages.unityrt = {
 
 // 实时高亮输入框组件
 const highlightWithBold = (code: string) => {
-  // 用栈处理嵌套 <color=...> 标签高亮，标签和内容都加 token-bold（用占位符实现）
+  // 用栈处理嵌套 <color=...> 和 <style=...> 标签高亮，标签和内容都加 token-bold（用占位符实现）
   let result = '';
   let i = 0;
   const len = code.length;
   const stack: number[] = [];
   while (i < len) {
-    // 匹配 <color=...>
-    const open = code.slice(i).match(/^<color=[^>]+>/i);
+    // 匹配 <color=...> 或 <style=...>
+    const open = code.slice(i).match(/^<(color|style)=[^>]+>/i);
     if (open) {
       result += '[[[TAG]]]' + open[0] + '[[[/TAG]]]';
       stack.push(i);
       i += open[0].length;
       continue;
     }
-    // 匹配 </color>
-    const close = code.slice(i).match(/^<\/color>/i);
+    // 匹配 </color> 或 </style>
+    const close = code.slice(i).match(/^<\/(color|style)>/i);
     if (close) {
       result += '[[[TAG]]]' + close[0] + '[[[/TAG]]]';
       stack.pop();
@@ -245,7 +288,7 @@ const highlightWithBold = (code: string) => {
       i += tag[0].length;
       continue;
     }
-    // 在 <color> 区间内的内容加高亮
+    // 在 <color> 或 <style> 区间内的内容加高亮
     let content = '';
     while (i < len) {
       if (code[i] === '<') break;
@@ -308,9 +351,18 @@ const useDoc = `
 
   <h2>工具栏功能</h2>
   <ul>
-    <li>支持对光标选中文本插入<b>加粗</b>、<i>斜体</i>、<u>下划线</u>、<s>删除线</s>、<sup>上标</sup>、<sub>下标</sub>、<color=#xxxxxx>颜色</color>、<size=120%>字号</size>标签</li>
+    <li>支持对光标选中文本插入<b>加粗</b>、<i>斜体</i>、<u>下划线</u>、<s>删除线</s>、<sup>上标</sup>、<sub>下标</sub>、<style=neutral>语义颜色</style>、<size=120%>字号</size>标签</li>
     <li>支持在光标所在位置插入软连接符、不换行空格、防修建间隙</li>
     <li>颜色、字号支持自定义选择</li>
+  </ul>
+
+  <h2>语义颜色说明</h2>
+  <ul>
+    <li><strong>元素类型：</strong>ice(冰霜)、fire(火焰)、nature(自然)、holy(光明)、dark(黑暗)</li>
+    <li><strong>稀有度：</strong>common(普通)、uncommon(罕见)、rare(稀有)、epic(史诗)、legend(传说)</li>
+    <li><strong>情感倾向：</strong>positive(正面)、negative(负面)、neutral(中立)</li>
+    <li><strong>特殊：</strong>all(全部)</li>
+    <li>使用语法：<code>&lt;style=neutral&gt;文本内容&lt;/style&gt;</code></li>
   </ul>
 
   <h2>操作区功能</h2>
@@ -332,6 +384,7 @@ const useDoc = `
   <h2>注意事项：</h2>
   <ul>
     <li>修改后务必要点击保存才会同步到多维表格</li>
+    <li>语义颜色标签使用 <code>&lt;style=xxx&gt;</code> 语法，传统颜色标签 <code>&lt;color=#xxxxxx&gt;</code> 仍然支持</li>
   </ul>
 </div>
 `;
@@ -636,12 +689,22 @@ function App() {
       .replace(/<s>(.*?)<\/s>/g, '<s>$1</s>')
       .replace(/<sup>(.*?)<\/sup>/g, '<sup>$1</sup>')
       .replace(/<sub>(.*?)<\/sub>/g, '<sub>$1</sub>');
-    // 处理 <color=xxx>
+    
+    // 处理语义颜色标签 <style=xxx>
+    html = html.replace(/<style=([^>]+)>(.*?)<\/style>/g, (match, styleName, content) => {
+      const color = semanticColors[styleName as keyof typeof semanticColors];
+      return color ? `<span style="color:${color}">${content}</span>` : match;
+    });
+    
+    // 处理传统颜色标签 <color=xxx>（保持向后兼容）
     html = html.replace(/<color=([^>]+)>(.*?)<\/color>/g, '<span style="color:$1">$2</span>');
+    
     // 处理 <size=xx%>
     html = html.replace(/<size=([^>]+)>(.*?)<\/size>/g, '<span style="font-size:$1">$2</span>');
+    
     // 处理换行
     html = html.replace(/\n/g, '<br>');
+    
     // 分段显示
     if (enableSegmentation) {
       const segments = html.split('|').filter(segment => segment.trim() !== '');
@@ -850,41 +913,7 @@ function App() {
     setText(transformedText);
   };
 
-  // 添加新的颜色处理函数
-  const addColorTag = (color: string) => {
-    const textarea = document.getElementById('unity-rich-text-editor') as HTMLTextAreaElement | null;
-    if (!textarea) return;
-    
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const value = textarea.value;
-    
-    const openTag = `<color=${color}>`;
-    const closeTag = '</color>';
-    
-    let newValue;
-    if (start === end) {
-      // 在光标位置插入标签
-      newValue = value.slice(0, start) + openTag + closeTag + value.slice(end);
-    } else {
-      // 用标签包裹选中的文本
-      const selectedText = value.slice(start, end);
-      newValue = value.slice(0, start) + openTag + selectedText + closeTag + value.slice(end);
-    }
-    
-    // 更新文本
-    setText(newValue);
-    
-    // 设置光标位置
-    requestAnimationFrame(() => {
-      textarea.focus();
-      if (start === end) {
-        textarea.setSelectionRange(start + openTag.length, start + openTag.length);
-      } else {
-        textarea.setSelectionRange(start + openTag.length, start + openTag.length + (end - start));
-      }
-    });
-  };
+
 
   // 修改颜色选择器的点击处理
   const handleColorPickerClick = (e: React.MouseEvent<HTMLElement>) => {
@@ -912,7 +941,35 @@ function App() {
           !colorPickerAnchor.contains(target) && 
           !picker?.contains(target) &&
           !closeButton?.contains(target)) {
-        addColorTag(customColor);
+        // 自定义颜色仍然使用传统的 color 标签
+        const textarea = document.getElementById('unity-rich-text-editor') as HTMLTextAreaElement | null;
+        if (textarea) {
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const value = textarea.value;
+          
+          const openTag = `<color=${customColor}>`;
+          const closeTag = '</color>';
+          
+          let newValue;
+          if (start === end) {
+            newValue = value.slice(0, start) + openTag + closeTag + value.slice(end);
+          } else {
+            const selectedText = value.slice(start, end);
+            newValue = value.slice(0, start) + openTag + selectedText + closeTag + value.slice(end);
+          }
+          
+          setText(newValue);
+          
+          requestAnimationFrame(() => {
+            textarea.focus();
+            if (start === end) {
+              textarea.setSelectionRange(start + openTag.length, start + openTag.length);
+            } else {
+              textarea.setSelectionRange(start + openTag.length, start + openTag.length + (end - start));
+            }
+          });
+        }
         setShowColorPicker(false);
         setColorPickerAnchor(null);
       }
@@ -1026,7 +1083,7 @@ function App() {
                         key={key}
                         variant="outlined"
                         size="small"
-                        onClick={() => insertMarkup(`<color=${color}>`, '</color>')}
+                        onClick={() => insertMarkup(`<style=${key}>`, '</style>')}
                         sx={{ 
                           minWidth: 'auto', 
                           px: 1,
@@ -1035,11 +1092,11 @@ function App() {
                           border: '1px solid #ccc',
                         }}
                       >
-                        {key === 'normal' ? '普通' : 
+                        {key === 'common' ? '普通' : 
                          key === 'uncommon' ? '罕见' : 
                          key === 'rare' ? '稀有' : 
                          key === 'epic' ? '史诗' : 
-                         key === 'legendary' ? '传说' : key}
+                         key === 'legend' ? '传说' : key}
                       </Button>
                     ))}
                   </Box>
@@ -1051,7 +1108,7 @@ function App() {
                         key={key}
                         variant="outlined"
                         size="small"
-                        onClick={() => insertMarkup(`<color=${color}>`, '</color>')}
+                        onClick={() => insertMarkup(`<style=${key}>`, '</style>')}
                         sx={{ 
                           minWidth: 'auto', 
                           px: 1,
@@ -1060,11 +1117,11 @@ function App() {
                           border: '1px solid #ccc',
                         }}
                       >
-                        {key === 'frost' ? '冰霜' : 
+                        {key === 'ice' ? '冰霜' : 
                          key === 'fire' ? '火焰' : 
                          key === 'nature' ? '自然' : 
                          key === 'holy' ? '神圣' : 
-                         key === 'shadow' ? '暗影' : key}
+                         key === 'dark' ? '暗影' : key}
                       </Button>
                     ))}
                   </Box>
@@ -1076,7 +1133,7 @@ function App() {
                         key={key}
                         variant="outlined"
                         size="small"
-                        onClick={() => insertMarkup(`<color=${color}>`, '</color>')}
+                        onClick={() => insertMarkup(`<style=${key}>`, '</style>')}
                         sx={{
                           minWidth: 'auto',
                           px: 1,
@@ -1088,9 +1145,9 @@ function App() {
                           fontWeight: 500
                         }}
                       >
-                        {key === 'neutral' ? '中性' :
-                         key === 'positive' ? '正面' :
-                         key === 'negative' ? '负面' : key}
+                        {key === 'positive' ? '正面' :
+                         key === 'negative' ? '负面' :
+                         key === 'neutral' ? '中性' : key}
                       </Button>
                     ))}
                     <Button

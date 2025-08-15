@@ -22,11 +22,33 @@
   color: inherit !important;
 }
 
+/* 语义颜色标签样式 */
+.token.style-tag {
+  color: #9c27b0 !important; /* 紫色，区分于普通标签 */
+}
+
+.token.style-tag .tag {
+  color: #9c27b0 !important;
+}
+
+.token.style-tag .attr-value {
+  color: #ff9800 !important; /* 橙色，突出语义名称 */
+}
+
 /* 标签内容的样式 */
 .token.tag-content .content {
   font-weight: bold !important;
   color: #2c3e50 !important;
   background-color: rgba(44, 62, 80, 0.1) !important;
+  padding: 0 2px !important;
+  border-radius: 2px !important;
+}
+
+/* 语义颜色标签内容的样式 */
+.token.style-tag .content {
+  font-weight: bold !important;
+  color: #2c3e50 !important;
+  background-color: rgba(156, 39, 176, 0.1) !important;
   padding: 0 2px !important;
   border-radius: 2px !important;
 }
@@ -39,4 +61,9 @@
 
 .token-bold, .token.tag, .token-bold .token.tag {
   background-color: rgba(255, 23, 68, 0.10) !important;
+}
+
+/* 语义颜色标签的高亮样式 */
+.token-bold .token.style-tag {
+  background-color: rgba(156, 39, 176, 0.10) !important;
 } 
