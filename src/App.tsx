@@ -162,6 +162,11 @@ const supportedLanguages = [
 // 更新日志（按时间倒序排列）
 const updateLogs = [
   {
+    version: 'v1.3.1',
+    date: '2025-01-27',
+    content: '新增列表样式功能：以 <style=neutral> 开头的列表项在预览时会显示为 ▶ 符号，提供更直观的视觉区分。',
+  },
+  {
     version: 'v1.3.0',
     date: '2025-01-27',
     content: '新增语义颜色系统，支持使用 <style=neutral> 等语义标签代替颜色值，包括元素类型、稀有度、情感倾向等分类。',
@@ -379,6 +384,7 @@ const useDoc = `
   <ul>
     <li>默认开启分段显示，用于查看技能描述在局内的显示效果</li>
     <li>可设定背景颜色，查看不同背景颜色下的显示效果</li>
+    <li>以 <code>&lt;style=neutral&gt;</code> 开头的列表项会显示为 ▶ 符号</li>
   </ul>
 
   <h2>注意事项：</h2>
@@ -709,9 +715,15 @@ function App() {
     if (enableSegmentation) {
       const segments = html.split('|').filter(segment => segment.trim() !== '');
       if (segments.length > 1) {
-        html = segments.map(segment =>
-          `<div style="margin-bottom: 8px;">• ${segment.trim()}</div>`
-        ).join('');
+        html = segments.map(segment => {
+          const trimmedSegment = segment.trim();
+          // 检查是否以 <style=neutral> 开头
+          if (trimmedSegment.startsWith('<span style="color:#14cbf9">') || 
+              trimmedSegment.startsWith('<style=neutral>')) {
+            return `<div style="margin-bottom: 8px;"><span style="margin:0 0.1em">▸</span> ${trimmedSegment}</div>`;
+          }
+          return `<div style="margin-bottom: 8px;">• ${trimmedSegment}</div>`;
+        }).join('');
       }
     }
     return html;
